@@ -15,6 +15,30 @@
     Your browser does not support the audio element.
   </audio>
 
+  <p>Listening time: <span id="time">0</span> seconds</p>
+
+<script>
+let audio = document.querySelector("audio");
+let timeDisplay = document.getElementById("time");
+let seconds = 0;
+let timer;
+
+audio.addEventListener("play", () => {
+  timer = setInterval(() => {
+    seconds++;
+    timeDisplay.textContent = seconds;
+  }, 1000);
+});
+
+audio.addEventListener("pause", () => {
+  clearInterval(timer);
+});
+
+audio.addEventListener("ended", () => {
+  clearInterval(timer);
+});
+</script>
+
   <!-- <h2>528 Hz – Healing</h2>
   <audio controls>
     <source src="528hz.mp3" type="audio/mpeg">
