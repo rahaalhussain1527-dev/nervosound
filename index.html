@@ -4,261 +4,125 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1"/>
   <title>NervoSound</title>
-  <style>
-    body{font-family:Arial, sans-serif; max-width:900px; margin:30px auto; padding:0 16px; line-height:1.6;}
-    h1{margin-bottom:6px}
-    .sub{color:#555; margin-top:0}
-    .card{border:1px solid #ddd; border-radius:12px; padding:16px; margin:14px 0; background:#fafafa;}
-    .row{display:flex; gap:12px; flex-wrap:wrap; align-items:center;}
-    label{font-weight:600;}
-    input, select{padding:8px; border:1px solid #ccc; border-radius:8px;}
-    .pill{display:inline-block; padding:4px 10px; border-radius:999px; background:#eee; margin-left:6px; font-size:12px;}
-    .time{font-weight:700;}
-    table{width:100%; border-collapse:collapse; margin-top:10px;}
-    th, td{border-bottom:1px solid #e5e5e5; padding:10px; text-align:left; font-size:14px;}
-    th{background:#f2f2f2;}
-    .btn{padding:10px 14px; border:0; border-radius:10px; cursor:pointer;}
-    .btnPrimary{background:#1f6feb; color:white;}
-    .btnDanger{background:#d1242f; color:white;}
-    .note{color:#666; font-size:13px;}
-  </style>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <header class="top">
+    <h1>NervoSound – Music Therapy</h1>
+    <p class="sub">Track listening time + mood (0–10), compare frequencies, and view per-user analytics.</p>
+  </header>
 
-  <h1>NervoSound – Music Therapy</h1>
-  <p class="sub">Prescribed music frequencies for psychological well-being</p>
+  <main class="grid">
+    <!-- USERS -->
+    <section class="card">
+      <h2>Users</h2>
 
-  <!-- 432 -->
-  <div class="card">
-    <h2>432 Hz – Relaxation <span class="pill">Audio</span></h2>
-    <p class="note">
-      432 Hz is commonly described in popular wellness contexts as a calming tone. This page tracks listening duration and self-reported mood change.
-    </p>
-    <audio id="a432" controls>
-      <source src="432.mp3" type="audio/mpeg" />
-      Your browser does not support the audio element.
-    </audio>
-    <p>Listening time: <span class="time" id="t432">0</span> seconds</p>
-  </div>
-
-  <!-- 852 -->
-  <div class="card">
-    <h2>852 Hz – Healing <span class="pill">Audio</span></h2>
-    <p class="note">
-      852 Hz is often associated (in non-clinical contexts) with focus and inner balance. We record time and perceived mood improvement.
-    </p>
-    <audio id="a852" controls>
-      <source src="852.mp3" type="audio/mpeg" />
-      Your browser does not support the audio element.
-    </audio>
-    <p>Listening time: <span class="time" id="t852">0</span> seconds</p>
-  </div>
-
-  <!-- 963 -->
-  <div class="card">
-    <h2>963 Hz – Spiritual Awareness <span class="pill">Audio</span></h2>
-    <p class="note">
-      963 Hz is often labeled as a “meditative / awareness” frequency in wellness media. This project logs usage and self-report outcomes.
-    </p>
-    <audio id="a963" controls>
-      <source src="963.mp3" type="audio/mpeg" />
-      Your browser does not support the audio element.
-    </audio>
-    <p>Listening time: <span class="time" id="t963">0</span> seconds</p>
-  </div>
-
-  <!-- Session logging -->
-  <div class="card">
-    <h2>Session Log (Analysis)</h2>
-
-    <div class="row">
-      <div>
-        <label>Participant name</label><br/>
-        <input id="name" placeholder="e.g., Ahmad" />
+      <div class="row">
+        <input id="newUserName" type="text" placeholder="Type a name (e.g., Raha)" />
+        <button id="addUserBtn">Add / Select</button>
       </div>
 
-      <div>
-        <label>Frequency</label><br/>
-        <select id="freq">
-          <option value="432">432 Hz</option>
-          <option value="852">852 Hz</option>
-          <option value="963">963 Hz</option>
-        </select>
+      <div class="row">
+        <select id="userSelect"></select>
+        <button id="openProfileBtn">Open profile</button>
       </div>
 
-      <div>
-        <label>Mood (Before) 0–10</label><br/>
-        <input id="before" type="number" min="0" max="10" value="5"/>
+      <p class="hint">Profile opens as: <code>?user=NAME</code></p>
+    </section>
+
+    <!-- PLAYER + SESSION -->
+    <section class="card">
+      <h2>Session</h2>
+
+      <label class="label">Frequency</label>
+      <select id="freqSelect">
+        <option value="432">432 Hz – Relaxation</option>
+        <option value="852">852 Hz – Healing</option>
+        <option value="963">963 Hz – Spiritual Awareness</option>
+      </select>
+
+      <div class="player">
+        <audio id="audio" controls preload="metadata">
+          <source id="audioSrc" src="432.mp3" type="audio/mpeg" />
+          Your browser does not support audio.
+        </audio>
+        <div class="time">
+          Listening time (this session): <b><span id="liveSeconds">0</span></b> seconds
+        </div>
       </div>
 
-      <div>
-        <label>Mood (After) 0–10</label><br/>
-        <input id="after" type="number" min="0" max="10" value="6"/>
+      <div class="row">
+        <div class="col">
+          <label class="label">Mood before (0–10)</label>
+          <input id="moodBefore" type="number" min="0" max="10" value="5" />
+        </div>
+        <div class="col">
+          <label class="label">Mood after (0–10)</label>
+          <input id="moodAfter" type="number" min="0" max="10" value="5" />
+        </div>
       </div>
-    </div>
 
-    <p class="note">
-      Tip: play a track, then stop it. The listening time shown above updates automatically. Choose the same frequency here, then click “Save session”.
-    </p>
+      <div class="row">
+        <button id="saveSessionBtn" class="primary">Save session</button>
+        <button id="resetTimerBtn">Reset timer</button>
+      </div>
 
-    <div class="row">
-      <button class="btn btnPrimary" id="saveBtn">Save session</button>
-      <button class="btn btnDanger" id="clearBtn">Clear all sessions</button>
-      <span class="note" id="status"></span>
-    </div>
+      <p class="hint">
+        Tip: Play audio, listen, then set mood-after and click <b>Save session</b>.
+      </p>
+    </section>
 
-    <h3>Summary</h3>
-    <div class="row">
-      <div class="note">Total sessions: <b id="sumCount">0</b></div>
-      <div class="note">Average improvement: <b id="sumAvg">0</b></div>
-      <div class="note">Most used frequency: <b id="sumMost">-</b></div>
-    </div>
+    <!-- ANALYTICS -->
+    <section class="card wide">
+      <h2 id="analyticsTitle">Analytics</h2>
 
-    <h3>Sessions</h3>
-    <table>
-      <thead>
-        <tr>
-          <th>Date</th>
-          <th>Name</th>
-          <th>Freq</th>
-          <th>Duration (s)</th>
-          <th>Before</th>
-          <th>After</th>
-          <th>Improvement</th>
-        </tr>
-      </thead>
-      <tbody id="tableBody"></tbody>
-    </table>
-  </div>
+      <div class="row wrap">
+        <div class="mini">
+          <div class="k">Total sessions</div>
+          <div class="v" id="statTotal">0</div>
+        </div>
+        <div class="mini">
+          <div class="k">Avg improvement</div>
+          <div class="v" id="statAvg">0</div>
+        </div>
+        <div class="mini">
+          <div class="k">Most used</div>
+          <div class="v" id="statMost">—</div>
+        </div>
+      </div>
 
-<script>
-  // ------- Listening time tracker per audio -------
-  function trackAudio(audioId, timeId) {
-    const audio = document.getElementById(audioId);
-    const timeEl = document.getElementById(timeId);
-    let seconds = 0;
-    let timer = null;
+      <h3>Frequency comparison (Avg improvement)</h3>
+      <canvas id="chart" width="900" height="260"></canvas>
 
-    audio.addEventListener("play", () => {
-      if (timer) return;
-      timer = setInterval(() => {
-        seconds++;
-        timeEl.textContent = seconds;
-      }, 1000);
-    });
+      <h3>Sessions</h3>
+      <div class="tableWrap">
+        <table id="sessionsTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>User</th>
+              <th>Freq</th>
+              <th>Duration (s)</th>
+              <th>Before</th>
+              <th>After</th>
+              <th>Improvement</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
 
-    function stopTimer(){
-      if (timer) { clearInterval(timer); timer = null; }
-    }
+      <div class="row">
+        <button id="clearAllBtn" class="danger">Clear ALL data</button>
+      </div>
 
-    audio.addEventListener("pause", stopTimer);
-    audio.addEventListener("ended", stopTimer);
+      <p class="hint">
+        Data is saved in <b>LocalStorage</b> (in your browser). GitHub Pages can run it normally.
+      </p>
+    </section>
+  </main>
 
-    // expose getter
-    return () => seconds;
-  }
-
-  const get432 = trackAudio("a432", "t432");
-  const get852 = trackAudio("a852", "t852");
-  const get963 = trackAudio("a963", "t963");
-
-  function getDurationByFreq(freq){
-    if (freq === "432") return get432();
-    if (freq === "852") return get852();
-    return get963();
-  }
-
-  // ------- Storage + Analytics -------
-  const KEY = "nervosound_sessions_v1";
-
-  function loadSessions(){
-    try { return JSON.parse(localStorage.getItem(KEY) || "[]"); }
-    catch { return []; }
-  }
-  function saveSessions(list){
-    localStorage.setItem(KEY, JSON.stringify(list));
-  }
-
-  function render(){
-    const sessions = loadSessions();
-    const tbody = document.getElementById("tableBody");
-    tbody.innerHTML = "";
-
-    let sumImprove = 0;
-    const freqCount = { "432":0, "852":0, "963":0 };
-
-    sessions.forEach(s => {
-      sumImprove += s.improvement;
-      freqCount[s.freq] = (freqCount[s.freq] || 0) + 1;
-
-      const tr = document.createElement("tr");
-      tr.innerHTML = `
-        <td>${new Date(s.date).toLocaleString()}</td>
-        <td>${s.name}</td>
-        <td>${s.freq} Hz</td>
-        <td>${s.duration}</td>
-        <td>${s.before}</td>
-        <td>${s.after}</td>
-        <td><b>${s.improvement}</b></td>
-      `;
-      tbody.appendChild(tr);
-    });
-
-    document.getElementById("sumCount").textContent = sessions.length;
-
-    const avg = sessions.length ? (sumImprove / sessions.length).toFixed(2) : "0";
-    document.getElementById("sumAvg").textContent = avg;
-
-    let most = "-";
-    let best = -1;
-    Object.keys(freqCount).forEach(f => {
-      if (freqCount[f] > best) { best = freqCount[f]; most = f + " Hz"; }
-    });
-    document.getElementById("sumMost").textContent = sessions.length ? most : "-";
-  }
-
-  document.getElementById("saveBtn").addEventListener("click", () => {
-    const name = (document.getElementById("name").value || "").trim();
-    const freq = document.getElementById("freq").value;
-    const before = Number(document.getElementById("before").value);
-    const after = Number(document.getElementById("after").value);
-
-    if (!name) {
-      document.getElementById("status").textContent = "Please enter a participant name.";
-      return;
-    }
-    if (before < 0 || before > 10 || after < 0 || after > 10) {
-      document.getElementById("status").textContent = "Mood values must be between 0 and 10.";
-      return;
-    }
-
-    const duration = getDurationByFreq(freq);
-    const improvement = after - before;
-
-    const sessions = loadSessions();
-    sessions.unshift({
-      date: new Date().toISOString(),
-      name,
-      freq,
-      duration,
-      before,
-      after,
-      improvement
-    });
-    saveSessions(sessions);
-
-    document.getElementById("status").textContent = "Saved ✔";
-    render();
-  });
-
-  document.getElementById("clearBtn").addEventListener("click", () => {
-    localStorage.removeItem(KEY);
-    document.getElementById("status").textContent = "Cleared.";
-    render();
-  });
-
-  render();
-</script>
-
+  <script src="app.js"></script>
 </body>
 </html>
