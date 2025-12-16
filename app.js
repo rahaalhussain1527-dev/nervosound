@@ -58,6 +58,9 @@ const clearAllBtn = $("clearAllBtn");
 const canvas = $("chart");
 const ctx = canvas.getContext("2d");
 
+// عنصر التحليل النهائي (لازم يكون موجود بالـ HTML)
+const analysisTextEl = $("analysisText");
+
 // ---------- Init users ----------
 function renderUsers() {
   const users = loadUsers();
@@ -131,7 +134,7 @@ function renderTable() {
   const sessions = filteredSessions();
   sessionsTableBody.innerHTML = "";
 
-  sessions.forEach((s, idx) => {
+  sessions.forEach((s) => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
       <td>${fmtDate(s.date)}</td>
@@ -196,11 +199,19 @@ function computeStats() {
     freqAvg[f] = n ? (freqImpSum[f] / n) : 0;
   });
 
-  return { freqAvg };
+  return { freqAvg, avg };
+}
+
+function setupCanvasSize() {
+  // يساعد إن الرسم يطلع “عمودي واضح”
+  // إذا عندك CSS مضبوط، ما رح يضر
+  canvas.width = canvas.clientWidth ? canvas.clientWidth : 900;
+  canvas.height = 260;
 }
 
 function drawChart(freqAvg) {
-  // simple bar chart without libs
+  setupCanvasSize();
+
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   const freqs = [432,852,963];
@@ -220,7 +231,7 @@ function drawChart(freqAvg) {
   ctx.lineTo(padding + w, padding + h);
   ctx.stroke();
 
-  // scale: mood improvement can be negative, but we’ll show range -10..+10 safely
+  // scale: improvement range -10..+10
   const minV = -10, maxV = 10;
   const zeroY = padding + h - ((0 - minV) / (maxV - minV)) * h;
 
@@ -262,6 +273,58 @@ function renderTitle() {
   analyticsTitle.textContent = u ? `Analytics – ${u}` : "Analytics (All users)";
 }
 
+// ---------- FINAL ANALYSIS (النص النهائي) ----------
+function generateFinalAnalysis(sessions, userNameOrAll) {
+  if (!analysisTextEl) return; // إذا ما في عنصر بالـ HTML ما منعمل شي
+
+  if (!sessions || sessions.length === 0) {
+    analysisTextEl.textContent = "No sessions yet. Save at least one session to see the final analysis.";
+    return;
+  }
+
+  const freqStats = {};
+  sessions.forEach(s => {
+    if (!freqStats[s.freq]) freqStats[s.freq] = { totalImp: 0, n: 0, totalDur: 0 };
+    freqStats[s.freq].totalImp += s.improvement;
+    freqStats[s.freq].totalDur += s.duration;
+    freqStats[s.freq].n += 1;
+  });
+
+  // أفضل تردد حسب متوسط التحسن
+  let bestFreq = null;
+  let bestAvg = -Infinity;
+
+  Object.keys(freqStats).forEach(freq => {
+    const avg = freqStats[freq].totalImp / freqStats[freq].n;
+    if (avg > bestAvg) {
+      bestAvg = avg;
+      bestFreq = freq;
+    }
+  });
+
+  const overallAvg = sessions.reduce((a, s) => a + s.improvement, 0) / sessions.length;
+
+  // تفاصيل سريعة لكل تردد
+  const lines = Object.keys(freqStats)
+    .sort((a,b)=>Number(a)-Number(b))
+    .map(freq => {
+      const st = freqStats[freq];
+      const avgImp = (st.totalImp / st.n).toFixed(2);
+      const avgDur = (st.totalDur / st.n).toFixed(0);
+      return `• ${freq} Hz: avg improvement = ${avgImp} (sessions=${st.n}, avg duration=${avgDur}s)`;
+    });
+
+  const who = userNameOrAll || "All users";
+
+  analysisTextEl.textContent =
+`Final Analysis – ${who}
+Best frequency (highest avg improvement): ${bestFreq} Hz
+Average improvement overall: ${overallAvg.toFixed(2)} (scale 0–10 before/after, improvement = after - before)
+
+Per-frequency summary:
+${lines.join("\n")}`;
+}
+
 // ---------- Actions ----------
 addUserBtn.addEventListener("click", () => {
   const name = newUserName.value.trim();
@@ -288,7 +351,7 @@ saveSessionBtn.addEventListener("click", () => {
   const before = clamp(Number(moodBefore.value), 0, 10);
   const after = clamp(Number(moodAfter.value), 0, 10);
 
-  const duration = liveSeconds; // seconds listened in this session
+  const duration = liveSeconds;
   if (duration <= 0) {
     alert("Play the audio first so duration > 0.");
     return;
@@ -319,7 +382,7 @@ clearAllBtn.addEventListener("click", () => {
   if (!confirm("This will delete ALL saved users and sessions. Continue?")) return;
   localStorage.removeItem(LS_USERS);
   localStorage.removeItem(LS_SESSIONS);
-  location.href = location.pathname; // back to all users view
+  location.href = location.pathname;
 });
 
 // ---------- Boot ----------
@@ -333,43 +396,15 @@ function renderAll() {
   renderTable();
   const { freqAvg } = computeStats();
   drawChart(freqAvg);
+
+  // ⭐ هون السطر المهم: التحليل النهائي
+  const sessions = filteredSessions();
+  const who = getUserFromQuery() ? getUserFromQuery() : "All users";
+  generateFinalAnalysis(sessions, who);
 }
 
-// set default audio
+// default audio
 audioSrc.src = "432.mp3";
 audio.load();
 
 renderAll();
-
-function generateFinalAnalysis(sessions, userName) {
-  if (sessions.length === 0) return;
-
-  const freqStats = {};
-
-  sessions.forEach(s => {
-    if (!freqStats[s.freq]) {
-      freqStats[s.freq] = { total: 0, count: 0 };
-    }
-    freqStats[s.freq].total += s.improvement;
-    freqStats[s.freq].count++;
-  });
-
-  let bestFreq = "";
-  let bestAvg = -Infinity;
-
-  for (let freq in freqStats) {
-    const avg = freqStats[freq].total / freqStats[freq].count;
-    if (avg > bestAvg) {
-      bestAvg = avg;
-      bestFreq = freq;
-    }
-  }
-
-  const text =
-    `Based on the recorded sessions, the user ${userName} showed the highest
-    average mood improvement when listening to ${bestFreq}.
-    The average improvement score was ${bestAvg.toFixed(2)} on a scale from 0 to 10.
-    This suggests that ${bestFreq} is the most effective frequency for this user.`;
-
-  document.getElementById("analysisText").textContent = text;
-}
