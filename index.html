@@ -92,11 +92,16 @@
       </div>
 
       <h3>Frequency comparison (Avg improvement)</h3>
-      <canvas id="chart" width="900" height="260"></canvas>
+      <canvas id="chart" width="900" height="360"></canvas>
 
-      <!-- FINAL ANALYSIS (moved here + changed to <pre>) -->
-      <h3>Final Psychological Analysis</h3>
-      <pre id="analysisText" class="analysisBox">No analysis yet. Add sessions to see results.</pre>
+      <!-- FINAL ANALYSIS -->
+      <div class="final-analysis">
+        <h3>Final Psychological Analysis</h3>
+        <pre id="analysisText">No analysis yet. Add sessions to see results.</pre>
+        <p class="hint" style="margin-top:10px">
+          Note: This analysis is calculated from sessions stored in your browser (LocalStorage).
+        </p>
+      </div>
 
       <h3>Sessions</h3>
       <div class="tableWrap">
