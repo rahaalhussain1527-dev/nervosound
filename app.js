@@ -55,11 +55,10 @@ const analyticsTitle = $("analyticsTitle");
 const sessionsTableBody = $("sessionsTable").querySelector("tbody");
 const clearAllBtn = $("clearAllBtn");
 
+const analysisTextEl = $("analysisText");
+
 const canvas = $("chart");
 const ctx = canvas.getContext("2d");
-
-// عنصر التحليل النهائي (لازم يكون موجود بالـ HTML)
-const analysisTextEl = $("analysisText");
 
 // ---------- Init users ----------
 function renderUsers() {
@@ -165,9 +164,9 @@ function computeStats() {
   const total = sessions.length;
 
   let sumImp = 0;
-  let freqCount = {432:0, 852:0, 963:0};
-  let freqImpSum = {432:0, 852:0, 963:0};
-  let freqImpN = {432:0, 852:0, 963:0};
+  const freqCount = {432:0, 852:0, 963:0};
+  const freqImpSum = {432:0, 852:0, 963:0};
+  const freqImpN = {432:0, 852:0, 963:0};
 
   sessions.forEach(s => {
     sumImp += s.improvement;
@@ -199,130 +198,156 @@ function computeStats() {
     freqAvg[f] = n ? (freqImpSum[f] / n) : 0;
   });
 
-  return { freqAvg, avg };
+  return { freqAvg, avgOverall: avg, total };
 }
 
-function setupCanvasSize() {
-  // يساعد إن الرسم يطلع “عمودي واضح”
-  // إذا عندك CSS مضبوط، ما رح يضر
-  canvas.width = canvas.clientWidth ? canvas.clientWidth : 900;
-  canvas.height = 260;
-}
-
+// ---------- Better vertical chart (more “طولي” + ticks) ----------
 function drawChart(freqAvg) {
-  setupCanvasSize();
-
   ctx.clearRect(0,0,canvas.width,canvas.height);
 
   const freqs = [432,852,963];
-  const values = freqs.map(f => freqAvg[f] || 0);
+  const values = freqs.map(f => Number(freqAvg[f] || 0));
 
-  const padding = 40;
-  const w = canvas.width - padding*2;
-  const h = canvas.height - padding*2;
+  const paddingL = 60;
+  const paddingR = 24;
+  const paddingT = 20;
+  const paddingB = 50;
+
+  const w = canvas.width - paddingL - paddingR;
+  const h = canvas.height - paddingT - paddingB;
 
   // axis
-  ctx.globalAlpha = 0.9;
-  ctx.lineWidth = 1;
   ctx.strokeStyle = "#93a4b8";
+  ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(padding, padding);
-  ctx.lineTo(padding, padding + h);
-  ctx.lineTo(padding + w, padding + h);
+  ctx.moveTo(paddingL, paddingT);
+  ctx.lineTo(paddingL, paddingT + h);
+  ctx.lineTo(paddingL + w, paddingT + h);
   ctx.stroke();
 
-  // scale: improvement range -10..+10
   const minV = -10, maxV = 10;
-  const zeroY = padding + h - ((0 - minV) / (maxV - minV)) * h;
+  const yFor = (v) => paddingT + h - ((v - minV) / (maxV - minV)) * h;
 
-  // zero line
+  // grid + y labels (every 5)
+  ctx.font = "12px system-ui";
+  ctx.fillStyle = "#c9d6e7";
+  ctx.strokeStyle = "#1f2a37";
+
+  for (let yVal = -10; yVal <= 10; yVal += 5) {
+    const y = yFor(yVal);
+    ctx.beginPath();
+    ctx.moveTo(paddingL, y);
+    ctx.lineTo(paddingL + w, y);
+    ctx.stroke();
+    ctx.fillText(String(yVal), 18, y + 4);
+  }
+
+  // zero line darker
   ctx.strokeStyle = "#3b556d";
   ctx.beginPath();
-  ctx.moveTo(padding, zeroY);
-  ctx.lineTo(padding + w, zeroY);
+  ctx.moveTo(paddingL, yFor(0));
+  ctx.lineTo(paddingL + w, yFor(0));
   ctx.stroke();
 
-  const barW = w / freqs.length * 0.55;
   const gap = w / freqs.length;
+  const barW = Math.min(140, gap * 0.6);
 
   freqs.forEach((f, i) => {
     const v = values[i];
-    const x = padding + i*gap + (gap - barW)/2;
+    const x = paddingL + i*gap + (gap - barW)/2;
 
-    const yVal = padding + h - ((v - minV) / (maxV - minV)) * h;
-    const y = Math.min(yVal, zeroY);
-    const barH = Math.abs(zeroY - yVal);
+    const yVal = yFor(v);
+    const yZero = yFor(0);
+    const y = Math.min(yVal, yZero);
+    const barH = Math.abs(yZero - yVal);
 
     // bar
     ctx.fillStyle = "#1d4ed8";
     ctx.fillRect(x, y, barW, barH);
 
-    // labels
+    // value label
     ctx.fillStyle = "#e8eef6";
-    ctx.font = "14px system-ui";
-    ctx.fillText(`${f} Hz`, x, padding + h + 24);
     ctx.font = "13px system-ui";
-    ctx.fillText(v.toFixed(2), x, y - 8);
+    ctx.fillText(v.toFixed(2), x + 6, y - 8);
+
+    // x label
+    ctx.font = "14px system-ui";
+    ctx.fillText(`${f} Hz`, x + 6, paddingT + h + 30);
+  });
+}
+
+// ---------- Final analysis text ----------
+function generateFinalAnalysisText(sessions, scopeLabel) {
+  if (!analysisTextEl) return;
+
+  if (!sessions || sessions.length === 0) {
+    analysisTextEl.textContent = "No analysis yet. Add sessions to see results.";
+    return;
+  }
+
+  const total = sessions.length;
+
+  let sumImp = 0;
+  let sumDur = 0;
+
+  const freq = {
+    432: { n:0, imp:0, dur:0 },
+    852: { n:0, imp:0, dur:0 },
+    963: { n:0, imp:0, dur:0 },
+  };
+
+  sessions.forEach(s => {
+    sumImp += s.improvement;
+    sumDur += s.duration;
+    if (!freq[s.freq]) freq[s.freq] = { n:0, imp:0, dur:0 };
+    freq[s.freq].n++;
+    freq[s.freq].imp += s.improvement;
+    freq[s.freq].dur += s.duration;
   });
 
-  ctx.globalAlpha = 1;
+  const overallAvgImp = sumImp / total;
+  const overallAvgDur = sumDur / total;
+
+  // best frequency by avg improvement
+  let bestFreq = "—";
+  let bestAvg = -Infinity;
+
+  [432,852,963].forEach(f => {
+    const n = freq[f].n;
+    const avg = n ? (freq[f].imp / n) : null;
+    if (avg !== null && avg > bestAvg) {
+      bestAvg = avg;
+      bestFreq = `${f} Hz`;
+    }
+  });
+
+  // build text
+  const lines = [];
+  lines.push(`Final Analysis – ${scopeLabel}`);
+  lines.push(`Best frequency (highest avg improvement): ${bestFreq}`);
+  lines.push(`Average improvement overall: ${overallAvgImp.toFixed(2)} (scale 0–10 before/after, improvement = after - before)`);
+  lines.push(`Average listening duration overall: ${overallAvgDur.toFixed(0)} seconds`);
+  lines.push("");
+  lines.push("Per-frequency summary:");
+
+  [432,852,963].forEach(f => {
+    const n = freq[f].n;
+    const avgImp = n ? (freq[f].imp / n) : 0;
+    const avgDur = n ? (freq[f].dur / n) : 0;
+    lines.push(`• ${f} Hz: avg improvement = ${avgImp.toFixed(2)} (sessions=${n}, avg duration=${avgDur.toFixed(0)}s)`);
+  });
+
+  lines.push("");
+  lines.push("Interpretation:");
+  lines.push(`Based on the saved sessions, ${bestFreq} produced the strongest average mood improvement for ${scopeLabel}.`);
+  lines.push("Note: This is a simple statistical summary (not medical advice).");
+
+  analysisTextEl.textContent = lines.join("\n");
 }
 
 function renderTitle() {
   const u = getUserFromQuery();
   analyticsTitle.textContent = u ? `Analytics – ${u}` : "Analytics (All users)";
-}
-
-// ---------- FINAL ANALYSIS (النص النهائي) ----------
-function generateFinalAnalysis(sessions, userNameOrAll) {
-  if (!analysisTextEl) return; // إذا ما في عنصر بالـ HTML ما منعمل شي
-
-  if (!sessions || sessions.length === 0) {
-    analysisTextEl.textContent = "No sessions yet. Save at least one session to see the final analysis.";
-    return;
-  }
-
-  const freqStats = {};
-  sessions.forEach(s => {
-    if (!freqStats[s.freq]) freqStats[s.freq] = { totalImp: 0, n: 0, totalDur: 0 };
-    freqStats[s.freq].totalImp += s.improvement;
-    freqStats[s.freq].totalDur += s.duration;
-    freqStats[s.freq].n += 1;
-  });
-
-  // أفضل تردد حسب متوسط التحسن
-  let bestFreq = null;
-  let bestAvg = -Infinity;
-
-  Object.keys(freqStats).forEach(freq => {
-    const avg = freqStats[freq].totalImp / freqStats[freq].n;
-    if (avg > bestAvg) {
-      bestAvg = avg;
-      bestFreq = freq;
-    }
-  });
-
-  const overallAvg = sessions.reduce((a, s) => a + s.improvement, 0) / sessions.length;
-
-  // تفاصيل سريعة لكل تردد
-  const lines = Object.keys(freqStats)
-    .sort((a,b)=>Number(a)-Number(b))
-    .map(freq => {
-      const st = freqStats[freq];
-      const avgImp = (st.totalImp / st.n).toFixed(2);
-      const avgDur = (st.totalDur / st.n).toFixed(0);
-      return `• ${freq} Hz: avg improvement = ${avgImp} (sessions=${st.n}, avg duration=${avgDur}s)`;
-    });
-
-  const who = userNameOrAll || "All users";
-
-  analysisTextEl.textContent =
-`Final Analysis – ${who}
-Best frequency (highest avg improvement): ${bestFreq} Hz
-Average improvement overall: ${overallAvg.toFixed(2)} (scale 0–10 before/after, improvement = after - before)
-
-Per-frequency summary:
-${lines.join("\n")}`;
 }
 
 // ---------- Actions ----------
@@ -347,7 +372,7 @@ saveSessionBtn.addEventListener("click", () => {
     return;
   }
 
-  const freq = Number(freqSelect.value);
+  const freqVal = Number(freqSelect.value);
   const before = clamp(Number(moodBefore.value), 0, 10);
   const after = clamp(Number(moodAfter.value), 0, 10);
 
@@ -364,7 +389,7 @@ saveSessionBtn.addEventListener("click", () => {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),
     date: nowISO(),
     user,
-    freq,
+    freq: freqVal,
     duration,
     before,
     after,
@@ -394,16 +419,17 @@ function renderAll() {
   if (qUser) ensureUserExists(qUser);
 
   renderTable();
+
   const { freqAvg } = computeStats();
   drawChart(freqAvg);
 
-  // ⭐ هون السطر المهم: التحليل النهائي
+  // Final analysis (scope: all users OR single user profile)
   const sessions = filteredSessions();
-  const who = getUserFromQuery() ? getUserFromQuery() : "All users";
-  generateFinalAnalysis(sessions, who);
+  const scope = qUser ? qUser : "All users";
+  generateFinalAnalysisText(sessions, scope);
 }
 
-// default audio
+// set default audio
 audioSrc.src = "432.mp3";
 audio.load();
 
