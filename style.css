@@ -36,20 +36,22 @@ th, td { padding: 10px; border-bottom: 1px solid #1f2a37; font-size: 13px; }
 th { text-align: left; opacity: .85; }
 td button { padding: 6px 10px; border-radius: 8px; }
 code { background:#0b1220; padding: 2px 6px; border-radius: 8px; border: 1px solid #263244; }
-.final-analysis {
-  margin-top: 30px;
-  padding: 20px;
-  background: #111827;
-  border: 1px solid #374151;
-  border-radius: 10px;
-}
 
-.final-analysis h3 {
-  color: #60a5fa;
-  margin-bottom: 10px;
-}
-
-.final-analysis p {
-  font-size: 15px;
+/* ✅ FINAL ANALYSIS BOX (used by <pre id="analysisText" class="analysisBox">) */
+.analysisBox{
+  margin-top: 10px;
+  padding: 14px;
+  border: 1px solid rgba(255,255,255,0.12);
+  border-radius: 12px;
+  background: #0b1220;
+  white-space: pre-wrap;
   line-height: 1.6;
+  font-size: 14px;
+}
+
+/* ✅ Make the chart feel more "vertical" */
+#chart{
+  width: 100%;
+  height: 320px;  /* bigger height -> bars look taller */
+  display: block;
 }
