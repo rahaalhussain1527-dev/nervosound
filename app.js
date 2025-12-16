@@ -340,3 +340,36 @@ audioSrc.src = "432.mp3";
 audio.load();
 
 renderAll();
+
+function generateFinalAnalysis(sessions, userName) {
+  if (sessions.length === 0) return;
+
+  const freqStats = {};
+
+  sessions.forEach(s => {
+    if (!freqStats[s.freq]) {
+      freqStats[s.freq] = { total: 0, count: 0 };
+    }
+    freqStats[s.freq].total += s.improvement;
+    freqStats[s.freq].count++;
+  });
+
+  let bestFreq = "";
+  let bestAvg = -Infinity;
+
+  for (let freq in freqStats) {
+    const avg = freqStats[freq].total / freqStats[freq].count;
+    if (avg > bestAvg) {
+      bestAvg = avg;
+      bestFreq = freq;
+    }
+  }
+
+  const text =
+    `Based on the recorded sessions, the user ${userName} showed the highest
+    average mood improvement when listening to ${bestFreq}.
+    The average improvement score was ${bestAvg.toFixed(2)} on a scale from 0 to 10.
+    This suggests that ${bestFreq} is the most effective frequency for this user.`;
+
+  document.getElementById("analysisText").textContent = text;
+}
