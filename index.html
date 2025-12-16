@@ -43,10 +43,34 @@ audio.addEventListener("ended", () => {
   <audio controls>
     <source src="852.mp3" type="audio/mpeg">
   </audio>
-  <h2>963 Hz – Deep Calm</h2>
+ <h2>963 Hz – Spiritual Awareness</h2>
 <audio controls>
   <source src="963.mp3" type="audio/mpeg">
+  Your browser does not support the audio element.
 </audio>
 
+<p>Listening time: <span id="time963">0</span> seconds</p>
+
+<script>
+let audio963 = document.querySelectorAll("audio")[1];
+let timeDisplay963 = document.getElementById("time963");
+let seconds963 = 0;
+let timer963;
+
+audio963.addEventListener("play", () => {
+  timer963 = setInterval(() => {
+    seconds963++;
+    timeDisplay963.textContent = seconds963;
+  }, 1000);
+});
+
+audio963.addEventListener("pause", () => {
+  clearInterval(timer963);
+});
+
+audio963.addEventListener("ended", () => {
+  clearInterval(timer963);
+});
+</script>
 </body>
 </html>
