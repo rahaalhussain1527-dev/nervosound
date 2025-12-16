@@ -6,71 +6,44 @@
 </head>
 <body>
 
-  <h1>NervoSound – Music Therapy</h1>
-  <p>Prescribed music frequencies for psychological well-being</p>
+<h1>NervoSound – Music Therapy</h1>
+<p>Prescribed music frequencies for psychological well-being</p>
 
-  <h2>432 Hz – Relaxation</h2>
-  <audio controls>
-    <source src="432.mp3" type="audio/mpeg">
-    Your browser does not support the audio element.
-  </audio>
-
-  <p>Listening time: <span id="time">0</span> seconds</p>
-
-<script>
-let audio = document.querySelector("audio");
-let timeDisplay = document.getElementById("time");
-let seconds = 0;
-let timer;
-
-audio.addEventListener("play", () => {
-  timer = setInterval(() => {
-    seconds++;
-    timeDisplay.textContent = seconds;
-  }, 1000);
-});
-
-audio.addEventListener("pause", () => {
-  clearInterval(timer);
-});
-
-audio.addEventListener("ended", () => {
-  clearInterval(timer);
-});
-</script>
-
-  <h2>852 Hz – Healing</h2>
-  <audio controls>
-    <source src="852.mp3" type="audio/mpeg">
-  </audio>
- <h2>963 Hz – Spiritual Awareness</h2>
-<audio controls>
-  <source src="963.mp3" type="audio/mpeg">
-  Your browser does not support the audio element.
+<h2>432 Hz – Relaxation</h2>
+<audio controls data-time="time432">
+  <source src="432.mp3" type="audio/mpeg">
 </audio>
+<p>Listening time: <span id="time432">0</span> seconds</p>
 
+<h2>852 Hz – Healing</h2>
+<audio controls data-time="time852">
+  <source src="852.mp3" type="audio/mpeg">
+</audio>
+<p>Listening time: <span id="time852">0</span> seconds</p>
+
+<h2>963 Hz – Spiritual Awareness</h2>
+<audio controls data-time="time963">
+  <source src="963.mp3" type="audio/mpeg">
+</audio>
 <p>Listening time: <span id="time963">0</span> seconds</p>
 
 <script>
-let audio963 = document.querySelectorAll("audio")[1];
-let timeDisplay963 = document.getElementById("time963");
-let seconds963 = 0;
-let timer963;
+document.querySelectorAll("audio").forEach(audio => {
+  let seconds = 0;
+  let timer;
+  let display = document.getElementById(audio.dataset.time);
 
-audio963.addEventListener("play", () => {
-  timer963 = setInterval(() => {
-    seconds963++;
-    timeDisplay963.textContent = seconds963;
-  }, 1000);
-});
+  audio.addEventListener("play", () => {
+    timer = setInterval(() => {
+      seconds++;
+      display.textContent = seconds;
+    }, 1000);
+  });
 
-audio963.addEventListener("pause", () => {
-  clearInterval(timer963);
-});
-
-audio963.addEventListener("ended", () => {
-  clearInterval(timer963);
+  audio.addEventListener("pause", () => clearInterval(timer));
+  audio.addEventListener("ended", () => clearInterval(timer));
 });
 </script>
+
 </body>
 </html>
