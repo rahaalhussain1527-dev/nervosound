@@ -432,6 +432,10 @@ renderAll();
 //   Frequency-on-Y Visualizer (dominant freq over time)
 //   ✅ Y-axis = Hz, X-axis = time (last 10s)
 // ======================================================
+// ======================================================
+//   Frequency-on-Y Visualizer (dominant freq over time)
+//   Y-axis = Hz, X-axis = time (last 10s)
+// ======================================================
 (() => {
   const audioEl = document.getElementById("audio");
   const canv = document.getElementById("spectrumCanvas");
@@ -440,12 +444,18 @@ renderAll();
   const ctx = canv.getContext("2d");
 
   function resizeCanvas() {
-    const w = canv.clientWidth || canv.width;
-    const h = canv.clientHeight || 240;
-    canv.width = Math.floor(w * devicePixelRatio);
-    canv.height = Math.floor(h * devicePixelRatio);
-    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+    const rect = canv.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width));
+    const h = Math.max(1, Math.floor(rect.height));
+    const dpr = window.devicePixelRatio || 1;
+
+    canv.width = Math.floor(w * dpr);
+    canv.height = Math.floor(h * dpr);
+
+    // draw in CSS pixels
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   }
+
   window.addEventListener("resize", resizeCanvas);
   resizeCanvas();
 
@@ -466,15 +476,24 @@ renderAll();
 
   function setup() {
     if (audioCtx) return;
+
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
 
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = fftSize;
     analyser.smoothingTimeConstant = smoothing;
 
+    // createMediaElementSource only once
     source = audioCtx.createMediaElementSource(audioEl);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
+  }
+
+  async function ensureRunning() {
+    setup();
+    if (audioCtx && audioCtx.state === "suspended") {
+      await audioCtx.resume();
+    }
   }
 
   function getDominantHz() {
@@ -492,8 +511,7 @@ renderAll();
       if (v > bestVal) { bestVal = v; bestI = i; }
     }
 
-    const freq = (bestI / bins) * nyquist;
-    return freq;
+    return (bestI / bins) * nyquist;
   }
 
   function drawPlot() {
@@ -507,14 +525,10 @@ renderAll();
     for (const v of history) { if (v < min) min = v; if (v > max) max = v; }
     if (!isFinite(min)) { min = 0; max = 0; }
 
-    const W = canv.clientWidth || 520;
-    const H = canv.clientHeight || 240;
+    const W = Math.max(1, Math.floor(canv.getBoundingClientRect().width));
+    const H = Math.max(1, Math.floor(canv.getBoundingClientRect().height));
 
-    const padL = 70;
-    const padR = 18;
-    const padT = 28;
-    const padB = 34;
-
+    const padL = 70, padR = 18, padT = 28, padB = 34;
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
@@ -523,13 +537,13 @@ renderAll();
     ctx.fillRect(0, 0, W, H);
 
     const yForHz = (f) => {
-      const ff = clamp(f, 0, maxHz);
+      const ff = Math.max(0, Math.min(maxHz, f));
       return padT + plotH - (ff / maxHz) * plotH;
     };
 
+    // grid
     ctx.strokeStyle = "rgba(148,163,184,0.35)";
     ctx.lineWidth = 1;
-
     ctx.font = "12px system-ui";
     ctx.fillStyle = "rgba(226,232,240,0.9)";
 
@@ -542,6 +556,7 @@ renderAll();
       ctx.fillText(`${yTick} Hz`, 10, y + 4);
     }
 
+    // axes
     ctx.strokeStyle = "rgba(226,232,240,0.7)";
     ctx.beginPath();
     ctx.moveTo(padL, padT);
@@ -549,6 +564,7 @@ renderAll();
     ctx.lineTo(padL + plotW, padT + plotH);
     ctx.stroke();
 
+    // band shading
     const y1 = yForHz(targetBand[0]);
     const y2 = yForHz(targetBand[1]);
     ctx.fillStyle = "rgba(34,197,94,0.12)";
@@ -557,10 +573,10 @@ renderAll();
     ctx.fillStyle = "rgba(34,197,94,0.85)";
     ctx.fillText(`Target band: ${targetBand[0]}–${targetBand[1]} Hz`, padL + 10, y2 + 14);
 
+    // line
     if (history.length >= 2) {
       ctx.strokeStyle = "#60a5fa";
       ctx.lineWidth = 2;
-
       ctx.beginPath();
       history.forEach((v, i) => {
         const x = padL + (i / (maxPoints - 1)) * plotW;
@@ -571,6 +587,7 @@ renderAll();
       ctx.stroke();
     }
 
+    // header
     ctx.fillStyle = "rgba(226,232,240,0.95)";
     ctx.font = "13px system-ui";
     const last = history[history.length - 1] || 0;
@@ -589,20 +606,28 @@ renderAll();
     rafId = null;
   }
 
-  audioEl.addEventListener("play", async () => {
+  async function start() {
     try {
-      setup();
-      if (audioCtx.state === "suspended") await audioCtx.resume();
+      await ensureRunning();
+      resizeCanvas();
       if (!rafId) drawPlot();
     } catch (e) {
       console.error("Visualizer error:", e);
     }
-  });
+  }
+
+  // ✅ مهم: استخدمي playing كمان
+  audioEl.addEventListener("play", start);
+  audioEl.addEventListener("playing", start);
 
   audioEl.addEventListener("pause", stop);
   audioEl.addEventListener("ended", stop);
 
   audioEl.addEventListener("loadedmetadata", () => {
     history.length = 0;
+    resizeCanvas();
   });
+
+  // ✅ أول نقرة بالصفحة بتفك الـAudioContext لو كان معلق
+  document.addEventListener("click", start, { once: true });
 })();
