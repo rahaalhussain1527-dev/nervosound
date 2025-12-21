@@ -1,42 +1,45 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="tr">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NervoSound - Music Therapy</title>
-  <link rel="stylesheet" href="style.css" />
+  <meta charset="UTF-8">
+  <title>NervoSound – Music Therapy</title>
+  <link rel="stylesheet" href="style.css">
 </head>
 <body>
 
   <div class="app">
     <h1>NervoSound – Music Therapy</h1>
-    <p class="subtitle">Track listening time + mood (0–10), compare frequencies, and view per-user analytics.</p>
+    <p class="subtitle">
+      Dinleme süresi, baskın frekans aralığı ve kullanıcı deneyimi analizi.
+    </p>
 
     <div class="card">
-      <h2>Session</h2>
+      <h2>Oturum</h2>
 
-      <label class="label" for="trackSelect">Track</label>
+      <label for="trackSelect" class="label">Müzik Türü</label>
       <select id="trackSelect" class="select">
-        <option value="">Select a track...</option>
-        <option value="relax_432">Relaxation</option>
-        <option value="focus_852">Focus</option>
-        <option value="med_963">Deep Meditation</option>
+        <option value="">Bir müzik seçiniz</option>
+        <option value="relax">Relaxation</option>
+        <option value="focus">Focus</option>
+        <option value="meditation">Deep Meditation</option>
       </select>
 
-      <!-- Note appears only after selection -->
-      <div id="freqNote" class="note" style="display:none;">
-        <div id="freqWarning" class="warning"></div>
-        <div id="freqDesc" class="desc"></div>
+      <!-- Bilgi alanı -->
+      <div id="infoBox" class="infoBox" style="display:none;">
+        <div id="warningText" class="warning"></div>
+        <div id="descriptionText" class="description"></div>
       </div>
 
-      <!-- Example player placeholder (optional) -->
-      <div class="playerBox">
-        <button class="btn">▶ Play</button>
-        <span class="time">0:00 / 5:00</span>
-        <div class="bar"></div>
+      <!-- Basit player görseli -->
+      <div class="player">
+        <button class="playBtn">▶</button>
+        <span>0:00 / 5:00</span>
+        <div class="progress"></div>
       </div>
 
-      <div class="footerText">Listening time (this session): <b>0</b> seconds</div>
+      <p class="footer">
+        Bu oturumdaki dinleme süresi: <b>0</b> saniye
+      </p>
     </div>
   </div>
 
