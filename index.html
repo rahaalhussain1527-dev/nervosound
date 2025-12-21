@@ -1,43 +1,142 @@
 <!DOCTYPE html>
-<html lang="tr">
+<html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>NervoSound - Music Therapy</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>NervoSound</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <div class="page">
-    <header class="header">
-      <h1>NervoSound – Music Therapy</h1>
-      <p>Dinleme süresi, baskın frekans aralığı ve kullanıcı deneyimi analizi.</p>
-    </header>
+  <header class="top">
+    <h1>NervoSound – Music Therapy</h1>
+    <p class="sub">Track listening time + mood (0–10), compare frequencies, and view per-user analytics.</p>
+  </header>
 
+  <main class="grid">
+    <!-- USERS -->
     <section class="card">
-      <h2>Oturum</h2>
+      <h2>Users</h2>
 
-      <label class="label" for="musicSelect">Müzik Türü</label>
-      <select id="musicSelect" class="select">
-        <option value="" selected disabled>Bir müzik seçiniz</option>
-        <option value="relaxation">Relaxation</option>
-        <option value="focus">Focus</option>
-        <option value="sleep">Sleep</option>
+      <div class="row">
+        <input id="newUserName" type="text" placeholder="Type a name (e.g., Raha)" />
+        <button id="addUserBtn">Add / Select</button>
+      </div>
+
+      <div class="row">
+        <select id="userSelect"></select>
+        <button id="openProfileBtn">Open profile</button>
+      </div>
+
+      <p class="hint">Profile opens as: <code>?user=NAME</code></p>
+    </section>
+
+    <!-- PLAYER + SESSION -->
+    <section class="card">
+      <h2>Session</h2>
+
+      <label class="label">Frequency</label>
+      <select id="freqSelect">
+        <option value="432">432 Hz – Relaxation</option>
+        <option value="852">852 Hz – Healing</option>
+        <option value="963">963 Hz – Spiritual Awareness</option>
       </select>
 
-      <div id="noteBox" class="note hidden" aria-live="polite">
-        <div id="warningText" class="warning"></div>
-        <div id="descText" class="desc"></div>
-      </div>
-
       <div class="player">
-        <audio id="audioPlayer" controls preload="metadata"></audio>
+        <audio id="audio" controls preload="metadata">
+          <source id="audioSrc" src="432.mp3" type="audio/mpeg" />
+          Your browser does not support audio.
+        </audio>
+
+        <!-- Frequency Visualizer -->
+        <div class="vizWrap">
+          <canvas id="spectrumCanvas"></canvas>
+        </div>
+
+        <div class="time">
+          Listening time (this session): <b><span id="liveSeconds">0</span></b> seconds
+        </div>
       </div>
 
-      <div class="timeRow">
-        Bu oturumdaki dinleme süresi: <span id="listeningTime">0</span> saniye
+      <div class="row">
+        <div class="col">
+          <label class="label">Mood before (0–10)</label>
+          <input id="moodBefore" type="number" min="0" max="10" value="5" />
+        </div>
+        <div class="col">
+          <label class="label">Mood after (0–10)</label>
+          <input id="moodAfter" type="number" min="0" max="10" value="5" />
+        </div>
       </div>
+
+      <div class="row">
+        <button id="saveSessionBtn" class="primary">Save session</button>
+        <button id="resetTimerBtn">Reset timer</button>
+      </div>
+
+      <p class="hint">
+        Tip: Play audio, listen, then set mood-after and click <b>Save session</b>.
+      </p>
     </section>
-  </div>
+
+    <!-- ANALYTICS -->
+    <section class="card wide">
+      <h2 id="analyticsTitle">Analytics</h2>
+
+      <div class="row wrap">
+        <div class="mini">
+          <div class="k">Total sessions</div>
+          <div class="v" id="statTotal">0</div>
+        </div>
+        <div class="mini">
+          <div class="k">Avg improvement</div>
+          <div class="v" id="statAvg">0</div>
+        </div>
+        <div class="mini">
+          <div class="k">Most used</div>
+          <div class="v" id="statMost">—</div>
+        </div>
+      </div>
+
+      <h3>Frequency comparison (Avg improvement)</h3>
+      <canvas id="chart" width="900" height="360"></canvas>
+
+      <!-- FINAL ANALYSIS -->
+      <div class="final-analysis">
+        <h3>Final Psychological Analysis</h3>
+        <pre id="analysisText">No analysis yet. Add sessions to see results.</pre>
+        <p class="hint" style="margin-top:10px">
+          Note: This analysis is calculated from sessions stored in your browser (LocalStorage).
+        </p>
+      </div>
+
+      <h3>Sessions</h3>
+      <div class="tableWrap">
+        <table id="sessionsTable">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>User</th>
+              <th>Freq</th>
+              <th>Duration (s)</th>
+              <th>Before</th>
+              <th>After</th>
+              <th>Improvement</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody></tbody>
+        </table>
+      </div>
+
+      <div class="row">
+        <button id="clearAllBtn" class="danger">Clear ALL data</button>
+      </div>
+
+      <p class="hint">
+        Data is saved in <b>LocalStorage</b> (in your browser). GitHub Pages can run it normally.
+      </p>
+    </section>
+  </main>
 
   <script src="app.js"></script>
 </body>
