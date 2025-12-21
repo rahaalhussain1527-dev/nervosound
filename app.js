@@ -39,7 +39,6 @@ const openProfileBtn = $("openProfileBtn");
 
 const freqSelect = $("freqSelect");
 const audio = $("audio");
-const audioSrc = $("audioSrc");
 const liveSecondsEl = $("liveSeconds");
 
 const moodBefore = $("moodBefore");
@@ -110,10 +109,14 @@ audio.addEventListener("ended", () => {
 
 freqSelect.addEventListener("change", () => {
   const f = freqSelect.value;
+
   audio.pause();
   audio.currentTime = 0;
-  audioSrc.src = `${f}.mp3`;
+
+  // ✅ IMPORTANT FIX: set src on <audio> directly
+  audio.src = `${f}.mp3`;
   audio.load();
+
   resetLiveTimer();
 });
 
@@ -419,8 +422,8 @@ function renderAll() {
   generateFinalAnalysisText(sessions, scope);
 }
 
-// set default audio
-audioSrc.src = "432.mp3";
+// ✅ set default audio (directly on <audio>)
+audio.src = "432.mp3";
 audio.load();
 renderAll();
 
@@ -436,11 +439,9 @@ renderAll();
 
   const ctx = canv.getContext("2d");
 
-  // responsive canvas (prevents "معجوق" / squished)
   function resizeCanvas() {
     const w = canv.clientWidth || canv.width;
     const h = canv.clientHeight || 240;
-    // set real buffer size (sharp)
     canv.width = Math.floor(w * devicePixelRatio);
     canv.height = Math.floor(h * devicePixelRatio);
     ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
@@ -452,16 +453,15 @@ renderAll();
   let analyser = null;
   let source = null;
 
-  const fftSize = 4096;         // better frequency resolution
+  const fftSize = 4096;
   const smoothing = 0.80;
-  const maxHz = 2000;           // y-axis range
-  const targetBand = [40, 80];  // highlighted band
+  const maxHz = 2000;
+  const targetBand = [40, 80];
 
-  // time buffer (last 10 seconds)
-  const sampleHz = 10;                 // samples per second
+  const sampleHz = 10;
   const windowSeconds = 10;
   const maxPoints = sampleHz * windowSeconds;
-  const history = [];                  // dominant Hz samples
+  const history = [];
   let rafId = null;
 
   function setup() {
@@ -472,19 +472,16 @@ renderAll();
     analyser.fftSize = fftSize;
     analyser.smoothingTimeConstant = smoothing;
 
-    // IMPORTANT: createMediaElementSource only once per audio element
     source = audioCtx.createMediaElementSource(audioEl);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
   }
 
   function getDominantHz() {
-    // use FloatFrequencyData for accuracy
     const bins = analyser.frequencyBinCount;
     const data = new Float32Array(bins);
     analyser.getFloatFrequencyData(data);
 
-    // find peak in 0..maxHz range
     const nyquist = audioCtx.sampleRate / 2;
     const maxBin = Math.min(bins - 1, Math.floor((maxHz / nyquist) * bins));
 
@@ -502,21 +499,17 @@ renderAll();
   function drawPlot() {
     if (!analyser) return;
 
-    // sample dominant freq
     const hz = getDominantHz();
     history.push(hz);
     if (history.length > maxPoints) history.shift();
 
-    // compute range last 10s
     let min = Infinity, max = -Infinity;
     for (const v of history) { if (v < min) min = v; if (v > max) max = v; }
     if (!isFinite(min)) { min = 0; max = 0; }
 
-    // canvas sizes in CSS px (because we setTransform)
     const W = canv.clientWidth || 520;
     const H = canv.clientHeight || 240;
 
-    // layout paddings (fix overlap / "معجوق")
     const padL = 70;
     const padR = 18;
     const padT = 28;
@@ -525,22 +518,18 @@ renderAll();
     const plotW = W - padL - padR;
     const plotH = H - padT - padB;
 
-    // background
     ctx.clearRect(0, 0, W, H);
     ctx.fillStyle = "#0f172a";
     ctx.fillRect(0, 0, W, H);
 
-    // helpers
     const yForHz = (f) => {
       const ff = clamp(f, 0, maxHz);
       return padT + plotH - (ff / maxHz) * plotH;
     };
 
-    // grid + axes
     ctx.strokeStyle = "rgba(148,163,184,0.35)";
     ctx.lineWidth = 1;
 
-    // horizontal grid ticks (0..2000 step 250)
     ctx.font = "12px system-ui";
     ctx.fillStyle = "rgba(226,232,240,0.9)";
 
@@ -550,11 +539,9 @@ renderAll();
       ctx.moveTo(padL, y);
       ctx.lineTo(padL + plotW, y);
       ctx.stroke();
-      // label
       ctx.fillText(`${yTick} Hz`, 10, y + 4);
     }
 
-    // axes
     ctx.strokeStyle = "rgba(226,232,240,0.7)";
     ctx.beginPath();
     ctx.moveTo(padL, padT);
@@ -562,7 +549,6 @@ renderAll();
     ctx.lineTo(padL + plotW, padT + plotH);
     ctx.stroke();
 
-    // target band shading 40-80Hz
     const y1 = yForHz(targetBand[0]);
     const y2 = yForHz(targetBand[1]);
     ctx.fillStyle = "rgba(34,197,94,0.12)";
@@ -571,7 +557,6 @@ renderAll();
     ctx.fillStyle = "rgba(34,197,94,0.85)";
     ctx.fillText(`Target band: ${targetBand[0]}–${targetBand[1]} Hz`, padL + 10, y2 + 14);
 
-    // line (dominant freq over time)
     if (history.length >= 2) {
       ctx.strokeStyle = "#60a5fa";
       ctx.lineWidth = 2;
@@ -586,14 +571,12 @@ renderAll();
       ctx.stroke();
     }
 
-    // header texts
     ctx.fillStyle = "rgba(226,232,240,0.95)";
     ctx.font = "13px system-ui";
     const last = history[history.length - 1] || 0;
     ctx.fillText(`Dominant: ${last.toFixed(1)} Hz`, padL, 18);
     ctx.fillText(`Range (last 10s): ${min.toFixed(1)}–${max.toFixed(1)} Hz`, padL + 170, 18);
 
-    // x label
     ctx.fillStyle = "rgba(226,232,240,0.7)";
     ctx.font = "12px system-ui";
     ctx.fillText(`time (last ${windowSeconds}s)`, padL, H - 10);
@@ -619,7 +602,6 @@ renderAll();
   audioEl.addEventListener("pause", stop);
   audioEl.addEventListener("ended", stop);
 
-  // when you change track, clear history for clean plot
   audioEl.addEventListener("loadedmetadata", () => {
     history.length = 0;
   });
