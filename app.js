@@ -434,3 +434,81 @@ audioSrc.src = "432.mp3";
 audio.load();
 
 renderAll();
+
+// ===== Spectrum Visualizer (Canvas) =====
+(() => {
+  const audioEl = document.getElementById("audio");
+  const canvas = document.getElementById("spectrumCanvas");
+  if (!audioEl || !canvas) return;
+
+  const ctx2d = canvas.getContext("2d");
+  let audioCtx, analyser, source, dataArray, rafId;
+
+  function setupAudio() {
+    if (audioCtx) return;
+
+    audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    analyser = audioCtx.createAnalyser();
+
+    analyser.fftSize = 2048; // دقّة التحليل
+    analyser.smoothingTimeConstant = 0.85;
+
+    const bufferLength = analyser.frequencyBinCount;
+    dataArray = new Uint8Array(bufferLength);
+
+    source = audioCtx.createMediaElementSource(audioEl);
+    source.connect(analyser);
+    analyser.connect(audioCtx.destination);
+  }
+
+  function draw() {
+    if (!analyser) return;
+
+    analyser.getByteFrequencyData(dataArray);
+
+    // خلفية
+    ctx2d.clearRect(0, 0, canvas.width, canvas.height);
+
+    const barCount = 70; // عدد الأعمدة المرئية
+    const step = Math.floor(dataArray.length / barCount);
+    const barWidth = canvas.width / barCount;
+
+    for (let i = 0; i < barCount; i++) {
+      const v = dataArray[i * step] / 255; // 0..1
+      const barHeight = Math.max(2, v * canvas.height);
+
+      const x = i * barWidth;
+      const y = canvas.height - barHeight;
+
+      // لون بسيط متدرّج حسب القوة
+      const r = Math.floor(80 + v * 175);
+      const g = Math.floor(120 + v * 90);
+      const b = Math.floor(200);
+
+      ctx2d.fillStyle = `rgb(${r},${g},${b})`;
+      ctx2d.fillRect(x + 1, y, barWidth - 2, barHeight);
+    }
+
+    rafId = requestAnimationFrame(draw);
+  }
+
+  audioEl.addEventListener("play", async () => {
+    setupAudio();
+    if (audioCtx.state === "suspended") await audioCtx.resume();
+    if (!rafId) draw();
+  });
+
+  audioEl.addEventListener("pause", () => {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  });
+
+  audioEl.addEventListener("ended", () => {
+    if (rafId) {
+      cancelAnimationFrame(rafId);
+      rafId = null;
+    }
+  });
+})();
