@@ -41,20 +41,21 @@
         <option value="963">963 Hz – Spiritual Awareness</option>
       </select>
 
-     <div class="player">
-  <audio id="audio" controls preload="metadata">
-    <source id="audioSrc" src="432.mp3" type="audio/mpeg" />
-    Your browser does not support audio.
-  </audio>
+      <div class="player">
+        <audio id="audio" controls preload="metadata">
+          <source id="audioSrc" src="432.mp3" type="audio/mpeg" />
+          Your browser does not support audio.
+        </audio>
 
-  <!-- Spectrum HERE -->
-  <canvas id="spectrumCanvas" width="100%" height="260"
-        style="margin:14px 0;border-radius:10px;background:#0f172a;border:1px solid #1e293b;"></canvas>
+        <!-- Frequency Visualizer -->
+        <div class="vizWrap">
+          <canvas id="spectrumCanvas"></canvas>
+        </div>
 
-  <div class="time">
-    Listening time (this session): <b><span id="liveSeconds">0</span></b> seconds
-  </div>
-</div>
+        <div class="time">
+          Listening time (this session): <b><span id="liveSeconds">0</span></b> seconds
+        </div>
+      </div>
 
       <div class="row">
         <div class="col">
