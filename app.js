@@ -57,8 +57,8 @@ const clearAllBtn = $("clearAllBtn");
 
 const analysisTextEl = $("analysisText");
 
-const canvas = $("chart");
-const ctx = canvas.getContext("2d");
+const chartCanvas = $("chart");
+const chartCtx = chartCanvas.getContext("2d");
 
 // ---------- Init users ----------
 function renderUsers() {
@@ -110,6 +110,8 @@ audio.addEventListener("ended", () => {
 
 freqSelect.addEventListener("change", () => {
   const f = freqSelect.value;
+  audio.pause();
+  audio.currentTime = 0;
   audioSrc.src = `${f}.mp3`;
   audio.load();
   resetLiveTimer();
@@ -177,7 +179,6 @@ function computeStats() {
 
   const avg = total ? (sumImp / total) : 0;
 
-  // Most used
   let most = "—";
   let bestCount = 0;
   for (const f of Object.keys(freqCount)) {
@@ -191,7 +192,6 @@ function computeStats() {
   statAvg.textContent = avg.toFixed(2);
   statMost.textContent = most;
 
-  // avg improvement per freq (for chart)
   const freqAvg = {};
   [432,852,963].forEach(f => {
     const n = freqImpN[f] || 0;
@@ -201,9 +201,9 @@ function computeStats() {
   return { freqAvg, avgOverall: avg, total };
 }
 
-// ---------- Better vertical chart ----------
+// ---------- Chart (Avg improvement) ----------
 function drawChart(freqAvg) {
-  ctx.clearRect(0,0,canvas.width,canvas.height);
+  chartCtx.clearRect(0,0,chartCanvas.width,chartCanvas.height);
 
   const freqs = [432,852,963];
   const values = freqs.map(f => Number(freqAvg[f] || 0));
@@ -213,41 +213,38 @@ function drawChart(freqAvg) {
   const paddingT = 20;
   const paddingB = 50;
 
-  const w = canvas.width - paddingL - paddingR;
-  const h = canvas.height - paddingT - paddingB;
+  const w = chartCanvas.width - paddingL - paddingR;
+  const h = chartCanvas.height - paddingT - paddingB;
 
-  // axis
-  ctx.strokeStyle = "#93a4b8";
-  ctx.lineWidth = 1;
-  ctx.beginPath();
-  ctx.moveTo(paddingL, paddingT);
-  ctx.lineTo(paddingL, paddingT + h);
-  ctx.lineTo(paddingL + w, paddingT + h);
-  ctx.stroke();
+  chartCtx.strokeStyle = "#93a4b8";
+  chartCtx.lineWidth = 1;
+  chartCtx.beginPath();
+  chartCtx.moveTo(paddingL, paddingT);
+  chartCtx.lineTo(paddingL, paddingT + h);
+  chartCtx.lineTo(paddingL + w, paddingT + h);
+  chartCtx.stroke();
 
   const minV = -10, maxV = 10;
   const yFor = (v) => paddingT + h - ((v - minV) / (maxV - minV)) * h;
 
-  // grid + y labels (every 5)
-  ctx.font = "12px system-ui";
-  ctx.fillStyle = "#c9d6e7";
-  ctx.strokeStyle = "#1f2a37";
+  chartCtx.font = "12px system-ui";
+  chartCtx.fillStyle = "#c9d6e7";
+  chartCtx.strokeStyle = "#1f2a37";
 
   for (let yVal = -10; yVal <= 10; yVal += 5) {
     const y = yFor(yVal);
-    ctx.beginPath();
-    ctx.moveTo(paddingL, y);
-    ctx.lineTo(paddingL + w, y);
-    ctx.stroke();
-    ctx.fillText(String(yVal), 18, y + 4);
+    chartCtx.beginPath();
+    chartCtx.moveTo(paddingL, y);
+    chartCtx.lineTo(paddingL + w, y);
+    chartCtx.stroke();
+    chartCtx.fillText(String(yVal), 18, y + 4);
   }
 
-  // zero line darker
-  ctx.strokeStyle = "#3b556d";
-  ctx.beginPath();
-  ctx.moveTo(paddingL, yFor(0));
-  ctx.lineTo(paddingL + w, yFor(0));
-  ctx.stroke();
+  chartCtx.strokeStyle = "#3b556d";
+  chartCtx.beginPath();
+  chartCtx.moveTo(paddingL, yFor(0));
+  chartCtx.lineTo(paddingL + w, yFor(0));
+  chartCtx.stroke();
 
   const gap = w / freqs.length;
   const barW = Math.min(140, gap * 0.6);
@@ -261,18 +258,15 @@ function drawChart(freqAvg) {
     const y = Math.min(yVal, yZero);
     const barH = Math.abs(yZero - yVal);
 
-    // bar
-    ctx.fillStyle = "#1d4ed8";
-    ctx.fillRect(x, y, barW, barH);
+    chartCtx.fillStyle = "#1d4ed8";
+    chartCtx.fillRect(x, y, barW, barH);
 
-    // value label
-    ctx.fillStyle = "#e8eef6";
-    ctx.font = "13px system-ui";
-    ctx.fillText(v.toFixed(2), x + 6, y - 8);
+    chartCtx.fillStyle = "#e8eef6";
+    chartCtx.font = "13px system-ui";
+    chartCtx.fillText(v.toFixed(2), x + 6, y - 8);
 
-    // x label
-    ctx.font = "14px system-ui";
-    ctx.fillText(`${f} Hz`, x + 6, paddingT + h + 30);
+    chartCtx.font = "14px system-ui";
+    chartCtx.fillText(`${f} Hz`, x + 6, paddingT + h + 30);
   });
 }
 
@@ -286,7 +280,6 @@ function generateFinalAnalysisText(sessions, scopeLabel) {
   }
 
   const total = sessions.length;
-
   let sumImp = 0;
   let sumDur = 0;
 
@@ -308,7 +301,6 @@ function generateFinalAnalysisText(sessions, scopeLabel) {
   const overallAvgImp = sumImp / total;
   const overallAvgDur = sumDur / total;
 
-  // best frequency by avg improvement
   let bestFreq = "—";
   let bestAvg = -Infinity;
 
@@ -324,7 +316,7 @@ function generateFinalAnalysisText(sessions, scopeLabel) {
   const lines = [];
   lines.push(`Final Analysis – ${scopeLabel}`);
   lines.push(`Best frequency (highest avg improvement): ${bestFreq}`);
-  lines.push(`Average improvement overall: ${overallAvgImp.toFixed(2)} (scale 0–10 before/after, improvement = after - before)`);
+  lines.push(`Average improvement overall: ${overallAvgImp.toFixed(2)} (after - before)`);
   lines.push(`Average listening duration overall: ${overallAvgDur.toFixed(0)} seconds`);
   lines.push("");
   lines.push("Per-frequency summary:");
@@ -430,253 +422,205 @@ function renderAll() {
 // set default audio
 audioSrc.src = "432.mp3";
 audio.load();
-
 renderAll();
 
 
-// =====================================================
-// ===== Spectrum (Y-axis = Hz) — CLEAR + NO OVERLAP =====
-// =====================================================
+// ======================================================
+//   Frequency-on-Y Visualizer (dominant freq over time)
+//   ✅ Y-axis = Hz, X-axis = time (last 10s)
+// ======================================================
 (() => {
   const audioEl = document.getElementById("audio");
-  const canvasEl = document.getElementById("spectrumCanvas");
-  if (!audioEl || !canvasEl) return;
+  const canv = document.getElementById("spectrumCanvas");
+  if (!audioEl || !canv) return;
 
-  const g = canvasEl.getContext("2d");
+  const ctx = canv.getContext("2d");
 
-  let audioCtx, analyser, source, dataArray, rafId;
+  // responsive canvas (prevents "معجوق" / squished)
+  function resizeCanvas() {
+    const w = canv.clientWidth || canv.width;
+    const h = canv.clientHeight || 240;
+    // set real buffer size (sharp)
+    canv.width = Math.floor(w * devicePixelRatio);
+    canv.height = Math.floor(h * devicePixelRatio);
+    ctx.setTransform(devicePixelRatio, 0, 0, devicePixelRatio, 0, 0);
+  }
+  window.addEventListener("resize", resizeCanvas);
+  resizeCanvas();
 
-  // rolling (last 10s) dominant freq series
-  const historySeconds = 10;
-  const fps = 20; // smooth enough
-  const maxPoints = historySeconds * fps;
-  const domHistory = [];
+  let audioCtx = null;
+  let analyser = null;
+  let source = null;
 
-  // target band
-  const targetLo = 40;
-  const targetHi = 80;
+  const fftSize = 4096;         // better frequency resolution
+  const smoothing = 0.80;
+  const maxHz = 2000;           // y-axis range
+  const targetBand = [40, 80];  // highlighted band
 
-  // display range for Y-axis
-  const maxHz = 2000;
+  // time buffer (last 10 seconds)
+  const sampleHz = 10;                 // samples per second
+  const windowSeconds = 10;
+  const maxPoints = sampleHz * windowSeconds;
+  const history = [];                  // dominant Hz samples
+  let rafId = null;
 
-  function setupAudio() {
+  function setup() {
     if (audioCtx) return;
-
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
     analyser = audioCtx.createAnalyser();
+    analyser.fftSize = fftSize;
+    analyser.smoothingTimeConstant = smoothing;
 
-    analyser.fftSize = 4096;               // higher resolution
-    analyser.smoothingTimeConstant = 0.85;
-
-    const bufferLength = analyser.frequencyBinCount;
-    dataArray = new Uint8Array(bufferLength);
-
+    // IMPORTANT: createMediaElementSource only once per audio element
     source = audioCtx.createMediaElementSource(audioEl);
     source.connect(analyser);
     analyser.connect(audioCtx.destination);
   }
 
-  function hzFromBin(binIndex) {
-    const sr = (audioCtx ? audioCtx.sampleRate : 48000);
-    const binCount = analyser.frequencyBinCount; // N/2
-    return (binIndex * sr) / (binCount * 2);
-  }
-
   function getDominantHz() {
-    analyser.getByteFrequencyData(dataArray);
+    // use FloatFrequencyData for accuracy
+    const bins = analyser.frequencyBinCount;
+    const data = new Float32Array(bins);
+    analyser.getFloatFrequencyData(data);
 
-    // only up to maxHz for analysis
+    // find peak in 0..maxHz range
+    const nyquist = audioCtx.sampleRate / 2;
+    const maxBin = Math.min(bins - 1, Math.floor((maxHz / nyquist) * bins));
+
     let bestI = 0;
-    let bestV = -1;
-
-    const binCount = dataArray.length;
-    // compute last bin for maxHz
-    let maxBin = Math.floor((maxHz / (audioCtx.sampleRate / (analyser.fftSize))) );
-    maxBin = Math.max(1, Math.min(binCount - 1, maxBin));
-
-    for (let i = 1; i <= maxBin; i++) {
-      const v = dataArray[i];
-      if (v > bestV) {
-        bestV = v;
-        bestI = i;
-      }
-    }
-    return hzFromBin(bestI);
-  }
-
-  function getRangeHz() {
-    // range of bins that are "active" (last frame)
-    // threshold based on max energy
-    let maxVal = 0;
-    for (let i = 0; i < dataArray.length; i++) maxVal = Math.max(maxVal, dataArray[i]);
-    const thr = Math.max(18, maxVal * 0.22);
-
-    let minI = -1, maxI = -1;
-
-    // limit to maxHz
-    let maxBin = Math.floor((maxHz / (audioCtx.sampleRate / (analyser.fftSize))) );
-    maxBin = Math.max(1, Math.min(dataArray.length - 1, maxBin));
-
-    for (let i = 1; i <= maxBin; i++) {
-      if (dataArray[i] >= thr) {
-        if (minI === -1) minI = i;
-        maxI = i;
-      }
+    let bestVal = -Infinity;
+    for (let i = 0; i <= maxBin; i++) {
+      const v = data[i];
+      if (v > bestVal) { bestVal = v; bestI = i; }
     }
 
-    if (minI === -1) return { lo: 0, hi: 0 };
-    return { lo: hzFromBin(minI), hi: hzFromBin(maxI) };
+    const freq = (bestI / bins) * nyquist;
+    return freq;
   }
 
-  function fitCanvasToCSS() {
-    // make it crisp on HiDPI
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvasEl.getBoundingClientRect();
-    const w = Math.max(520, Math.floor(rect.width));
-    const h = Math.max(220, Math.floor(rect.height || 220));
-
-    canvasEl.width = Math.floor(w * dpr);
-    canvasEl.height = Math.floor(h * dpr);
-    g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  }
-
-  function drawFrame() {
+  function drawPlot() {
     if (!analyser) return;
 
-    // keep canvas sized nicely
-    fitCanvasToCSS();
+    // sample dominant freq
+    const hz = getDominantHz();
+    history.push(hz);
+    if (history.length > maxPoints) history.shift();
 
-    const W = canvasEl.getBoundingClientRect().width;
-    const H = canvasEl.getBoundingClientRect().height;
+    // compute range last 10s
+    let min = Infinity, max = -Infinity;
+    for (const v of history) { if (v < min) min = v; if (v > max) max = v; }
+    if (!isFinite(min)) { min = 0; max = 0; }
 
-    // paddings (IMPORTANT for no overlap)
-    const leftPad = 82;
-    const rightPad = 18;
-    const topPad = 26;
-    const botPad = 40;
+    // canvas sizes in CSS px (because we setTransform)
+    const W = canv.clientWidth || 520;
+    const H = canv.clientHeight || 240;
 
-    const plotW = W - leftPad - rightPad;
-    const plotH = H - topPad - botPad;
+    // layout paddings (fix overlap / "معجوق")
+    const padL = 70;
+    const padR = 18;
+    const padT = 28;
+    const padB = 34;
 
-    const yForHz = (hz) => topPad + plotH - (hz / maxHz) * plotH;
-
-    // read spectrum data
-    analyser.getByteFrequencyData(dataArray);
-
-    const dominantHz = getDominantHz();
-    domHistory.push(dominantHz);
-    while (domHistory.length > maxPoints) domHistory.shift();
-
-    const range = getRangeHz();
+    const plotW = W - padL - padR;
+    const plotH = H - padT - padB;
 
     // background
-    g.clearRect(0, 0, W, H);
-    g.fillStyle = "#0f172a";
-    g.fillRect(0, 0, W, H);
+    ctx.clearRect(0, 0, W, H);
+    ctx.fillStyle = "#0f172a";
+    ctx.fillRect(0, 0, W, H);
 
-    // grid + axis
-    g.strokeStyle = "rgba(148,163,184,0.25)";
-    g.lineWidth = 1;
+    // helpers
+    const yForHz = (f) => {
+      const ff = clamp(f, 0, maxHz);
+      return padT + plotH - (ff / maxHz) * plotH;
+    };
 
-    // horizontal grid + y labels (NO OVERLAP)
-    const ticks = [0, 40, 80, 200, 500, 1000, 1500, 2000];
+    // grid + axes
+    ctx.strokeStyle = "rgba(148,163,184,0.35)";
+    ctx.lineWidth = 1;
 
-    g.font = "14px system-ui";
-    g.fillStyle = "#e5e7eb";
-    g.textBaseline = "middle";
+    // horizontal grid ticks (0..2000 step 250)
+    ctx.font = "12px system-ui";
+    ctx.fillStyle = "rgba(226,232,240,0.9)";
 
-    let lastY = -9999;
-    const minGap = 18;
-
-    for (const hz of ticks) {
-      const y = yForHz(hz);
-
-      // grid line
-      g.beginPath();
-      g.moveTo(leftPad, y);
-      g.lineTo(leftPad + plotW, y);
-      g.stroke();
-
-      // label (skip if too close)
-      if (Math.abs(y - lastY) >= minGap) {
-        g.fillText(`${hz} Hz`, 10, y);
-        lastY = y;
-      }
+    for (let yTick = 0; yTick <= maxHz; yTick += 250) {
+      const y = yForHz(yTick);
+      ctx.beginPath();
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + plotW, y);
+      ctx.stroke();
+      // label
+      ctx.fillText(`${yTick} Hz`, 10, y + 4);
     }
 
-    // y-axis line
-    g.strokeStyle = "rgba(148,163,184,0.55)";
-    g.beginPath();
-    g.moveTo(leftPad, topPad);
-    g.lineTo(leftPad, topPad + plotH);
-    g.stroke();
+    // axes
+    ctx.strokeStyle = "rgba(226,232,240,0.7)";
+    ctx.beginPath();
+    ctx.moveTo(padL, padT);
+    ctx.lineTo(padL, padT + plotH);
+    ctx.lineTo(padL + plotW, padT + plotH);
+    ctx.stroke();
 
-    // target band highlight (40–80 Hz)
-    const yHi = yForHz(targetHi);
-    const yLo = yForHz(targetLo);
-    g.fillStyle = "rgba(59,130,246,0.10)";
-    g.fillRect(leftPad, yHi, plotW, yLo - yHi);
+    // target band shading 40-80Hz
+    const y1 = yForHz(targetBand[0]);
+    const y2 = yForHz(targetBand[1]);
+    ctx.fillStyle = "rgba(34,197,94,0.12)";
+    ctx.fillRect(padL, y2, plotW, y1 - y2);
 
-    // label target band (put it TOP-RIGHT to avoid clutter)
-    g.font = "13px system-ui";
-    g.fillStyle = "rgba(226,232,240,0.85)";
-    g.textBaseline = "top";
-    g.fillText(`Target band: ${targetLo}–${targetHi} Hz`, leftPad + plotW - 220, topPad + 4);
+    ctx.fillStyle = "rgba(34,197,94,0.85)";
+    ctx.fillText(`Target band: ${targetBand[0]}–${targetBand[1]} Hz`, padL + 10, y2 + 14);
 
-    // line plot of dominant frequency (last 10s)
-    g.strokeStyle = "rgba(59,130,246,0.95)";
-    g.lineWidth = 2;
-    g.beginPath();
+    // line (dominant freq over time)
+    if (history.length >= 2) {
+      ctx.strokeStyle = "#60a5fa";
+      ctx.lineWidth = 2;
 
-    for (let i = 0; i < domHistory.length; i++) {
-      const x = leftPad + (i / (maxPoints - 1)) * plotW;
-      const y = yForHz(domHistory[i]);
-      if (i === 0) g.moveTo(x, y);
-      else g.lineTo(x, y);
+      ctx.beginPath();
+      history.forEach((v, i) => {
+        const x = padL + (i / (maxPoints - 1)) * plotW;
+        const y = yForHz(v);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
     }
-    g.stroke();
 
-    // info header (top)
-    g.font = "14px system-ui";
-    g.fillStyle = "#e2e8f0";
-    g.textBaseline = "alphabetic";
+    // header texts
+    ctx.fillStyle = "rgba(226,232,240,0.95)";
+    ctx.font = "13px system-ui";
+    const last = history[history.length - 1] || 0;
+    ctx.fillText(`Dominant: ${last.toFixed(1)} Hz`, padL, 18);
+    ctx.fillText(`Range (last 10s): ${min.toFixed(1)}–${max.toFixed(1)} Hz`, padL + 170, 18);
 
-    const domTxt = `Dominant: ${dominantHz.toFixed(1)} Hz`;
-    const rangeTxt = `Range (last 10s): ${range.lo.toFixed(1)}–${range.hi.toFixed(1)} Hz`;
-    g.fillText(domTxt, leftPad, 18);
-    g.fillText(rangeTxt, leftPad + 210, 18);
+    // x label
+    ctx.fillStyle = "rgba(226,232,240,0.7)";
+    ctx.font = "12px system-ui";
+    ctx.fillText(`time (last ${windowSeconds}s)`, padL, H - 10);
 
-    // x-axis label (bottom-right)
-    g.font = "12px system-ui";
-    g.fillStyle = "rgba(226,232,240,0.70)";
-    g.textBaseline = "alphabetic";
-    g.fillText(`time (last ${historySeconds}s)`, leftPad, topPad + plotH + 28);
+    rafId = requestAnimationFrame(drawPlot);
+  }
 
-    rafId = requestAnimationFrame(drawFrame);
+  function stop() {
+    if (rafId) cancelAnimationFrame(rafId);
+    rafId = null;
   }
 
   audioEl.addEventListener("play", async () => {
-    setupAudio();
-    if (audioCtx.state === "suspended") await audioCtx.resume();
-    if (!rafId) drawFrame();
-  });
-
-  audioEl.addEventListener("pause", () => {
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
+    try {
+      setup();
+      if (audioCtx.state === "suspended") await audioCtx.resume();
+      if (!rafId) drawPlot();
+    } catch (e) {
+      console.error("Visualizer error:", e);
     }
   });
 
-  audioEl.addEventListener("ended", () => {
-    if (rafId) {
-      cancelAnimationFrame(rafId);
-      rafId = null;
-    }
-  });
+  audioEl.addEventListener("pause", stop);
+  audioEl.addEventListener("ended", stop);
 
-  window.addEventListener("resize", () => {
-    // re-fit on resize
-    fitCanvasToCSS();
+  // when you change track, clear history for clean plot
+  audioEl.addEventListener("loadedmetadata", () => {
+    history.length = 0;
   });
 })();
