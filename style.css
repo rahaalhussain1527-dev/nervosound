@@ -1,99 +1,64 @@
-body {
-  margin: 0;
-  font-family: Arial, sans-serif;
-  background: #0b1020;
-  color: #eaeefc;
+* { box-sizing: border-box; }
+
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(1200px 800px at 30% 20%, #2a3f9a 0%, #0b1633 45%, #060b18 100%);
+  color:#fff;
 }
 
-.app {
-  max-width: 900px;
-  margin: 50px auto;
-  padding: 20px;
-}
+.page{ max-width: 980px; margin: 0 auto; padding: 40px 20px; }
 
-h1 {
-  margin-bottom: 5px;
-}
+.header h1{ margin:0 0 6px; font-size: 34px; }
+.header p{ margin:0 0 22px; opacity:.85; }
 
-.subtitle {
-  color: #aab6d6;
-  margin-bottom: 25px;
-}
-
-.card {
-  background: #111a33;
-  padding: 25px;
+.card{
+  background: rgba(255,255,255,.08);
+  border: 1px solid rgba(255,255,255,.10);
   border-radius: 16px;
-  box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+  padding: 22px;
+  box-shadow: 0 10px 25px rgba(0,0,0,.25);
 }
 
-.label {
-  display: block;
-  margin-bottom: 8px;
-  color: #aab6d6;
-}
+.card h2{ margin:0 0 14px; font-size: 26px; }
 
-.select {
+.label{ display:block; margin: 8px 0 8px; opacity:.9; }
+
+.select{
   width: 100%;
-  padding: 12px;
+  padding: 12px 14px;
   border-radius: 10px;
-  border: none;
-  background: #1a244a;
-  color: #fff;
-  font-size: 15px;
+  border: 1px solid rgba(255,255,255,.15);
+  background: rgba(255,255,255,.10);
+  color:#fff;
+  outline: none;
 }
 
-.select:focus {
-  outline: 2px solid #3b82f6;
-}
-
-.infoBox {
-  margin-top: 15px;
-  padding: 15px;
+.note{
+  margin-top: 14px;
+  padding: 14px;
   border-radius: 12px;
-  background: #0f1730;
-  border: 1px solid rgba(255,255,255,0.1);
+  border: 1px solid rgba(255,255,255,.14);
+  background: rgba(0,0,0,.18);
 }
 
-.warning {
-  color: #ff4d4d;
-  font-weight: bold;
-  margin-bottom: 8px;
+.hidden{ display:none; }
+
+.warning{
+  color: #ff4b4b;
+  font-weight: 800;
+  margin-bottom: 6px;
 }
 
-.description {
-  font-size: 14px;
-  line-height: 1.5;
+.desc{
+  opacity: .92;
+  line-height: 1.45;
 }
 
-.player {
-  margin-top: 20px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  background: #0f1730;
-  padding: 12px;
-  border-radius: 12px;
-}
+.player{ margin-top: 14px; }
+audio{ width:100%; }
 
-.playBtn {
-  background: #3b82f6;
-  border: none;
-  color: white;
-  padding: 10px 12px;
-  border-radius: 8px;
-  cursor: pointer;
-}
-
-.progress {
-  flex: 1;
-  height: 8px;
-  background: rgba(255,255,255,0.1);
-  border-radius: 999px;
-}
-
-.footer {
-  margin-top: 15px;
-  color: #aab6d6;
-  font-size: 13px;
+.timeRow{
+  margin-top: 10px;
+  opacity: .9;
 }
