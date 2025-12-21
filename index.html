@@ -1,46 +1,42 @@
 <!DOCTYPE html>
 <html lang="tr">
 <head>
-  <meta charset="UTF-8">
-  <title>NervoSound – Music Therapy</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>NervoSound - Music Therapy</title>
+  <link rel="stylesheet" href="style.css" />
 </head>
 <body>
+  <div class="page">
+    <header class="header">
+      <h1>NervoSound – Music Therapy</h1>
+      <p>Dinleme süresi, baskın frekans aralığı ve kullanıcı deneyimi analizi.</p>
+    </header>
 
-  <div class="app">
-    <h1>NervoSound – Music Therapy</h1>
-    <p class="subtitle">
-      Dinleme süresi, baskın frekans aralığı ve kullanıcı deneyimi analizi.
-    </p>
-
-    <div class="card">
+    <section class="card">
       <h2>Oturum</h2>
 
-      <label for="trackSelect" class="label">Müzik Türü</label>
-      <select id="trackSelect" class="select">
-        <option value="">Bir müzik seçiniz</option>
-        <option value="relax">Relaxation</option>
+      <label class="label" for="musicSelect">Müzik Türü</label>
+      <select id="musicSelect" class="select">
+        <option value="" selected disabled>Bir müzik seçiniz</option>
+        <option value="relaxation">Relaxation</option>
         <option value="focus">Focus</option>
-        <option value="meditation">Deep Meditation</option>
+        <option value="sleep">Sleep</option>
       </select>
 
-      <!-- Bilgi alanı -->
-      <div id="infoBox" class="infoBox" style="display:none;">
+      <div id="noteBox" class="note hidden" aria-live="polite">
         <div id="warningText" class="warning"></div>
-        <div id="descriptionText" class="description"></div>
+        <div id="descText" class="desc"></div>
       </div>
 
-      <!-- Basit player görseli -->
       <div class="player">
-        <button class="playBtn">▶</button>
-        <span>0:00 / 5:00</span>
-        <div class="progress"></div>
+        <audio id="audioPlayer" controls preload="metadata"></audio>
       </div>
 
-      <p class="footer">
-        Bu oturumdaki dinleme süresi: <b>0</b> saniye
-      </p>
-    </div>
+      <div class="timeRow">
+        Bu oturumdaki dinleme süresi: <span id="listeningTime">0</span> saniye
+      </div>
+    </section>
   </div>
 
   <script src="app.js"></script>
