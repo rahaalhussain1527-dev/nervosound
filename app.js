@@ -81,7 +81,7 @@
     ctx2d.stroke();
 
     // تدريجات Y (Hz)
-    ctx2d.fillStyle = "#c9d6e7";
+    ctx2d.fillStyle = "#e5e7eb";
     ctx2d.font = "14px system-ui";
 
     const ticks = [0, 40, 80, 200, 500, 1000, 1500, 2000].filter(t => t <= Y_MAX_HZ);
