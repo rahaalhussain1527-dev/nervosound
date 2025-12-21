@@ -1,273 +1,142 @@
-/* =========================
-   RESET + BASE
-========================= */
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
+:root{
+  --bg: #0b1020;
+  --panel: #111a33;
+  --panel2:#0f1730;
+  --text:#e9eefc;
+  --muted:#aab6d6;
+  --accent:#3b82f6;
+  --border: rgba(255,255,255,0.10);
+  --shadow: 0 20px 60px rgba(0,0,0,.45);
+  --danger:#ff4d4d;
 }
 
-body {
-  font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  background: linear-gradient(180deg, #020617, #020617);
-  color: #e5e7eb;
-  line-height: 1.5;
+*{ box-sizing: border-box; }
+body{
+  margin:0;
+  font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+  background: radial-gradient(1200px 500px at 20% 10%, #1a2a66 0%, var(--bg) 60%);
+  color: var(--text);
+  min-height: 100vh;
 }
 
-/* =========================
-   HEADER
-========================= */
-.top {
-  padding: 28px 32px 16px;
+.app{
+  max-width: 900px;
+  margin: 50px auto;
+  padding: 0 16px;
 }
 
-.top h1 {
-  font-size: 28px;
-  font-weight: 700;
-  margin-bottom: 6px;
+h1{
+  margin: 0 0 8px;
+  font-size: 34px;
+  letter-spacing: .2px;
 }
 
-.top .sub {
-  color: #9ca3af;
-  font-size: 14px;
+.subtitle{
+  margin: 0 0 22px;
+  color: var(--muted);
+  line-height: 1.4;
 }
 
-/* =========================
-   GRID LAYOUT
-========================= */
-.grid {
-  display: grid;
-  grid-template-columns: 320px 1fr;
-  gap: 18px;
-  padding: 18px 32px 40px;
+.card{
+  background: linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 22px;
+  box-shadow: var(--shadow);
 }
 
-.card {
-  background: linear-gradient(180deg, #0f172a, #020617);
-  border-radius: 14px;
-  padding: 18px;
-  box-shadow: 0 10px 30px rgba(0,0,0,0.35);
-}
-
-.card.wide {
-  grid-column: 1 / -1;
-}
-
-/* =========================
-   USERS
-========================= */
-.row {
-  display: flex;
-  gap: 10px;
-  margin-top: 10px;
-}
-
-.row.wrap {
-  flex-wrap: wrap;
-}
-
-.col {
-  flex: 1;
-}
-
-input,
-select,
-button {
-  background: #020617;
-  border: 1px solid #1e293b;
-  color: #e5e7eb;
-  padding: 10px 12px;
-  border-radius: 8px;
-  font-size: 14px;
-}
-
-input::placeholder {
-  color: #6b7280;
-}
-
-button {
-  cursor: pointer;
-  transition: background 0.2s, transform 0.1s;
-}
-
-button:hover {
-  background: #020617;
-  transform: translateY(-1px);
-}
-
-button.primary {
-  background: #2563eb;
-  border-color: #2563eb;
-}
-
-button.primary:hover {
-  background: #1d4ed8;
-}
-
-button.danger {
-  background: #7f1d1d;
-  border-color: #7f1d1d;
-}
-
-button.danger:hover {
-  background: #991b1b;
-}
-
-.hint {
-  margin-top: 10px;
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.label {
-  display: block;
-  margin-top: 10px;
-  margin-bottom: 4px;
-  font-size: 13px;
-  color: #cbd5f5;
-}
-
-/* =========================
-   PLAYER
-========================= */
-.player {
-  margin-top: 12px;
-}
-
-audio {
-  width: 100%;
-  margin-bottom: 10px;
-  border-radius: 10px;
-}
-
-/* =========================
-   SPECTRUM VISUALIZER
-========================= */
-.vizWrap {
-  width: 100%;
-  background: radial-gradient(circle at top, #1e3a8a, #020617);
-  border-radius: 14px;
-  padding: 12px;
-  margin: 12px 0;
-  border: 1px solid #1e293b;
-}
-
-#spectrumCanvas {
-  width: 100%;
-  height: 260px;
-  display: block;
-  background: linear-gradient(180deg, #020617, #020617);
-  border-radius: 10px;
-}
-
-/* =========================
-   TIME
-========================= */
-.time {
-  font-size: 14px;
-  color: #c7d2fe;
-  margin-top: 6px;
-}
-
-/* =========================
-   ANALYTICS
-========================= */
-.mini {
-  background: #020617;
-  border: 1px solid #1e293b;
-  border-radius: 10px;
-  padding: 10px 14px;
-  min-width: 160px;
-}
-
-.mini .k {
-  font-size: 12px;
-  color: #9ca3af;
-}
-
-.mini .v {
+.card h2{
+  margin: 0 0 14px;
   font-size: 22px;
+}
+
+.label{
+  display:block;
+  margin: 12px 0 8px;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.select{
+  width: 100%;
+  padding: 12px 14px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  border: 1px solid var(--border);
+  outline: none;
+  font-size: 15px;
+}
+
+.select:focus{
+  border-color: rgba(59,130,246,.6);
+  box-shadow: 0 0 0 3px rgba(59,130,246,.18);
+}
+
+/* Note box */
+.note{
+  margin-top: 14px;
+  padding: 14px 14px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.10);
+  background: rgba(255,255,255,0.04);
+}
+
+.warning{
+  color: var(--danger);
   font-weight: 700;
-  margin-top: 4px;
-}
-
-/* =========================
-   CHART
-========================= */
-#chart {
-  width: 100%;
-  background: #020617;
-  border-radius: 12px;
-  border: 1px solid #1e293b;
-  margin-top: 10px;
-}
-
-/* =========================
-   FINAL ANALYSIS
-========================= */
-.final-analysis {
-  margin-top: 20px;
-  background: #020617;
-  border: 1px solid #1e293b;
-  border-radius: 12px;
-  padding: 14px;
-}
-
-.final-analysis h3 {
   margin-bottom: 8px;
+  font-size: 14px;
 }
 
-.final-analysis pre {
-  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+.desc{
+  color: var(--text);
+  font-size: 14px;
+  line-height: 1.45;
+  opacity: .95;
+}
+
+/* Optional player UI */
+.playerBox{
+  margin-top: 18px;
+  display:flex;
+  align-items:center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 12px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+}
+
+.btn{
+  background: rgba(59,130,246,.15);
+  color: var(--text);
+  border: 1px solid rgba(59,130,246,.35);
+  padding: 10px 12px;
+  border-radius: 10px;
+  cursor:pointer;
+}
+
+.btn:hover{
+  background: rgba(59,130,246,.22);
+}
+
+.time{
+  color: var(--muted);
+  font-size: 14px;
+  min-width: 90px;
+}
+
+.bar{
+  flex:1;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255,255,255,0.08);
+  border: 1px solid rgba(255,255,255,0.08);
+}
+
+.footerText{
+  margin-top: 14px;
+  color: var(--muted);
   font-size: 13px;
-  white-space: pre-wrap;
-  color: #e5e7eb;
-}
-
-/* =========================
-   TABLE
-========================= */
-.tableWrap {
-  overflow-x: auto;
-  margin-top: 10px;
-}
-
-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 13px;
-}
-
-th, td {
-  padding: 8px 10px;
-  border-bottom: 1px solid #1e293b;
-  text-align: left;
-}
-
-th {
-  color: #cbd5f5;
-  font-weight: 600;
-}
-
-td {
-  color: #e5e7eb;
-}
-
-td button {
-  font-size: 12px;
-  padding: 4px 8px;
-}
-
-/* =========================
-   RESPONSIVE
-========================= */
-@media (max-width: 900px) {
-  .grid {
-    grid-template-columns: 1fr;
-    padding: 16px;
-  }
-
-  #spectrumCanvas {
-    height: 220px;
-  }
 }
