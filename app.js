@@ -27,31 +27,54 @@ function getUserFromQuery() {
   return u ? u.trim() : null;
 }
 
-// ---------- Tracks (labels + file + note) ----------
+// ✅ تحويل الأرقام العربية إلى إنكليزية (١٢٣ / ۱۲۳ -> 123)
+function toEnglishDigits(str) {
+  if (str == null) return "";
+  const map = {
+    "٠":"0","١":"1","٢":"2","٣":"3","٤":"4","٥":"5","٦":"6","٧":"7","٨":"8","٩":"9",
+    "۰":"0","۱":"1","۲":"2","۳":"3","۴":"4","۵":"5","۶":"6","۷":"7","۸":"8","۹":"9",
+  };
+  return String(str).replace(/[٠-٩۰-۹]/g, (d) => map[d] ?? d);
+}
+
+// ---------- Track metadata (Names + Spectrum Analyzer results) ----------
 const TRACKS = {
   432: {
-    label: "Relaxation",
-    file: "432.mp3",
+    name: "Relaxation",
+    // ✳️ عدّلي الأرقام هون إذا بدك حسب تحليلك الحقيقي
+    dominant: 432.0,
+    range: [420.0, 560.0],
     note:
-      "تنويه: هذا المحتوى لا يُعد علاجًا طبيًا. هذا المقطع يميل للطابع الهادئ ويُستخدم عادةً لدعم الاسترخاء وتقليل التوتر."
+      "Bu içerik tıbbi tedavi yerine geçmez. Relaxation parçası düşük ve orta frekanslarda yoğunlaşır; sakinleşme ve gevşeme hissini desteklemeyi amaçlar."
   },
   852: {
-    label: "Healing",
-    file: "852.mp3",
+    name: "Healing",
+    dominant: 785.2,
+    range: [293.0, 890.6],
     note:
-      "تنويه: هذا المحتوى لا يُعد علاجًا طبيًا. هذا المقطع يُستخدم عادةً لدعم صفاء الذهن والراحة النفسية بعد الضغط أو الإرهاق."
+      "Bu içerik tıbbi tedavi yerine geçmez. Healing parçası orta frekans ağırlıklıdır; zihinsel toparlanma hissini desteklemek için kullanılır."
   },
   963: {
-    label: "Spiritual Awareness",
-    file: "963.mp3",
+    name: "Spiritual Awareness",
+    dominant: 890.6,
+    range: [750.0, 890.6],
     note:
-      "تنويه: هذا المحتوى لا يُعد علاجًا طبيًا. هذا المقطع يُستخدم عادةً لدعم التركيز والوعي الداخلي وتهدئة الأفكار."
-  }
+      "Bu içerik tıbbi tedavi yerine geçmez. Spiritual Awareness parçası daha yüksek harmonik algı oluşturabilir; farkındalık ve odaklanma hissini destekler."
+  },
 };
 
-function trackLabel(freq) {
-  const f = Number(freq);
-  return TRACKS[f]?.label || "Unknown";
+function trackNameByFreq(freq) {
+  const t = TRACKS[Number(freq)];
+  return t ? t.name : `${freq}`;
+}
+
+function trackSpectrumLine(freq) {
+  const t = TRACKS[Number(freq)];
+  if (!t) return "";
+  const dom = (t.dominant != null) ? `${Number(t.dominant).toFixed(1)} Hz` : "—";
+  const r1 = t.range?.[0] != null ? Number(t.range[0]).toFixed(1) : "—";
+  const r2 = t.range?.[1] != null ? Number(t.range[1]).toFixed(1) : "—";
+  return `Dominant: ${dom} | Range: ${r1}–${r2} Hz`;
 }
 
 // ---------- State ----------
@@ -67,6 +90,9 @@ const openProfileBtn = $("openProfileBtn");
 const freqSelect = $("freqSelect");
 const audio = $("audio");
 const liveSecondsEl = $("liveSeconds");
+
+const trackNoteBox = document.getElementById("trackNote");
+const trackNoteText = document.getElementById("trackNoteText");
 
 const moodBefore = $("moodBefore");
 const moodAfter = $("moodAfter");
@@ -86,39 +112,40 @@ const analysisTextEl = $("analysisText");
 const chartCanvas = $("chart");
 const chartCtx = chartCanvas.getContext("2d");
 
-// ---------- Track Note UI (create if missing) ----------
-function ensureTrackNoteBox() {
-  let noteBox = document.getElementById("trackNote");
-  if (noteBox) return noteBox;
+// ✅ اجبار mood inputs تكون "English digits" حتى بالكتابة
+function enforceEnglishInput(el) {
+  if (!el) return;
 
-  noteBox = document.createElement("div");
-  noteBox.id = "trackNote";
-  noteBox.className = "track-note";
-  noteBox.style.display = "none";
-  noteBox.innerHTML = `
-    <div class="track-note-title"></div>
-    <div class="track-note-text"></div>
-  `;
+  // يساعد المتصفح يعرضها كلاتيني
+  el.setAttribute("lang", "en");
+  el.style.direction = "ltr";
+  el.style.unicodeBidi = "plaintext";
 
-  // put it under the visualizer box
-  const vizWrap = document.querySelector(".vizWrap");
-  if (vizWrap) vizWrap.after(noteBox);
+  const fix = () => {
+    const v = el.value;
+    const fixed = toEnglishDigits(v);
+    if (v !== fixed) el.value = fixed;
+  };
 
-  return noteBox;
+  el.addEventListener("input", fix);
+  el.addEventListener("change", fix);
+  fix();
 }
 
-function setTrackNote(title, text) {
-  const box = ensureTrackNoteBox();
-  const t = box.querySelector(".track-note-title");
-  const p = box.querySelector(".track-note-text");
-  t.textContent = title || "";
-  p.textContent = text || "";
-  box.style.display = "block";
-}
+// ---------- Track note ----------
+function showTrackNote() {
+  if (!trackNoteBox || !trackNoteText) return;
 
-function hideTrackNote() {
-  const box = document.getElementById("trackNote");
-  if (box) box.style.display = "none";
+  const f = Number(freqSelect.value);
+  const t = TRACKS[f];
+  if (!t) {
+    trackNoteBox.style.display = "none";
+    return;
+  }
+
+  // الملاحظة بتظهر بعد اختيار الموسيقى (وأيضاً بعد أول تحميل)
+  trackNoteText.textContent = t.note;
+  trackNoteBox.style.display = "block";
 }
 
 // ---------- Init users ----------
@@ -145,15 +172,6 @@ function ensureUserExists(name) {
   userSelect.value = name;
 }
 
-// ---------- Make dropdown show ONLY names (no Hz) ----------
-function applyTrackLabelsToSelect() {
-  if (!freqSelect) return;
-  [...freqSelect.options].forEach(opt => {
-    const f = Number(opt.value);
-    if (TRACKS[f]) opt.textContent = TRACKS[f].label; // ONLY name
-  });
-}
-
 // ---------- Audio + timer ----------
 function resetLiveTimer() {
   liveSeconds = 0;
@@ -178,21 +196,18 @@ audio.addEventListener("ended", () => {
   timer = null;
 });
 
-// ✅ change track
 freqSelect.addEventListener("change", () => {
-  const f = Number(freqSelect.value);
+  const f = freqSelect.value;
 
   audio.pause();
   audio.currentTime = 0;
 
-  // set src on <audio> directly
-  audio.src = TRACKS[f]?.file || `${f}.mp3`;
+  // ✅ set src on <audio> directly
+  audio.src = `${f}.mp3`;
   audio.load();
 
   resetLiveTimer();
-
-  // hide note until we actually have analysis data (dominant/range)
-  hideTrackNote();
+  showTrackNote();
 });
 
 // ---------- Sessions / Analytics ----------
@@ -218,7 +233,7 @@ function renderTable() {
     tr.innerHTML = `
       <td>${fmtDate(s.date)}</td>
       <td>${s.user}</td>
-      <td>${trackLabel(s.freq)}</td>
+      <td>${trackNameByFreq(s.freq)}</td>
       <td>${s.duration}</td>
       <td>${s.before}</td>
       <td>${s.after}</td>
@@ -244,34 +259,40 @@ function computeStats() {
   const total = sessions.length;
 
   let sumImp = 0;
+
+  const freqs = [432, 852, 963];
   const freqCount = {432:0, 852:0, 963:0};
   const freqImpSum = {432:0, 852:0, 963:0};
   const freqImpN = {432:0, 852:0, 963:0};
 
   sessions.forEach(s => {
     sumImp += s.improvement;
-    freqCount[s.freq] = (freqCount[s.freq] || 0) + 1;
-    freqImpSum[s.freq] = (freqImpSum[s.freq] || 0) + s.improvement;
-    freqImpN[s.freq] = (freqImpN[s.freq] || 0) + 1;
+    const f = Number(s.freq);
+    if (!freqCount[f] && freqCount[f] !== 0) return;
+
+    freqCount[f] = (freqCount[f] || 0) + 1;
+    freqImpSum[f] = (freqImpSum[f] || 0) + s.improvement;
+    freqImpN[f] = (freqImpN[f] || 0) + 1;
   });
 
   const avg = total ? (sumImp / total) : 0;
 
+  // Most used track (by count)
   let most = "—";
   let bestCount = 0;
-  for (const f of Object.keys(freqCount)) {
+  freqs.forEach(f => {
     if (freqCount[f] > bestCount) {
       bestCount = freqCount[f];
-      most = bestCount ? trackLabel(f) : "—";
+      most = bestCount ? trackNameByFreq(f) : "—";
     }
-  }
+  });
 
   statTotal.textContent = String(total);
   statAvg.textContent = avg.toFixed(2);
   statMost.textContent = most;
 
   const freqAvg = {};
-  [432,852,963].forEach(f => {
+  freqs.forEach(f => {
     const n = freqImpN[f] || 0;
     freqAvg[f] = n ? (freqImpSum[f] / n) : 0;
   });
@@ -325,7 +346,7 @@ function drawChart(freqAvg) {
   chartCtx.stroke();
 
   const gap = w / freqs.length;
-  const barW = Math.min(140, gap * 0.6);
+  const barW = Math.min(160, gap * 0.6);
 
   freqs.forEach((f, i) => {
     const v = values[i];
@@ -343,8 +364,9 @@ function drawChart(freqAvg) {
     chartCtx.font = "13px system-ui";
     chartCtx.fillText(v.toFixed(2), x + 6, y - 8);
 
+    // ✅ اسم الأغنية بدل Hz
     chartCtx.font = "14px system-ui";
-    chartCtx.fillText(`${trackLabel(f)}`, x + 6, paddingT + h + 30);
+    chartCtx.fillText(trackNameByFreq(f), x + 6, paddingT + h + 30);
   });
 }
 
@@ -361,55 +383,72 @@ function generateFinalAnalysisText(sessions, scopeLabel) {
   let sumImp = 0;
   let sumDur = 0;
 
-  const freq = {
+  const freqs = [432,852,963];
+  const per = {
     432: { n:0, imp:0, dur:0 },
     852: { n:0, imp:0, dur:0 },
     963: { n:0, imp:0, dur:0 },
   };
 
   sessions.forEach(s => {
+    const f = Number(s.freq);
     sumImp += s.improvement;
     sumDur += s.duration;
-    if (!freq[s.freq]) freq[s.freq] = { n:0, imp:0, dur:0 };
-    freq[s.freq].n++;
-    freq[s.freq].imp += s.improvement;
-    freq[s.freq].dur += s.duration;
+
+    if (!per[f]) return;
+    per[f].n++;
+    per[f].imp += s.improvement;
+    per[f].dur += s.duration;
   });
 
   const overallAvgImp = sumImp / total;
   const overallAvgDur = sumDur / total;
 
-  let bestTrack = "—";
+  // Best track by avg improvement
+  let bestF = null;
   let bestAvg = -Infinity;
 
-  [432,852,963].forEach(f => {
-    const n = freq[f].n;
-    const avg = n ? (freq[f].imp / n) : null;
+  freqs.forEach(f => {
+    const n = per[f].n;
+    const avg = n ? (per[f].imp / n) : null;
     if (avg !== null && avg > bestAvg) {
       bestAvg = avg;
-      bestTrack = trackLabel(f);
+      bestF = f;
     }
   });
 
   const lines = [];
   lines.push(`Final Analysis – ${scopeLabel}`);
-  lines.push(`Best track (highest avg improvement): ${bestTrack}`);
+  lines.push(`Best track (highest avg improvement): ${bestF ? trackNameByFreq(bestF) : "—"}`);
   lines.push(`Average improvement overall: ${overallAvgImp.toFixed(2)} (after - before)`);
   lines.push(`Average listening duration overall: ${overallAvgDur.toFixed(0)} seconds`);
   lines.push("");
-  lines.push("Per-track summary:");
 
-  [432,852,963].forEach(f => {
-    const n = freq[f].n;
-    const avgImp = n ? (freq[f].imp / n) : 0;
-    const avgDur = n ? (freq[f].dur / n) : 0;
-    lines.push(`• ${trackLabel(f)}: avg improvement = ${avgImp.toFixed(2)} (sessions=${n}, avg duration=${avgDur.toFixed(0)}s)`);
+  // ✅ إضافة شرح Spectrum Analyzer لكل أغنية
+  lines.push("Spectrum Analyzer (per track):");
+  freqs.forEach(f => {
+    lines.push(`• ${trackNameByFreq(f)} → ${trackSpectrumLine(f)}`);
+  });
+
+  lines.push("");
+  lines.push("Per-track mood summary (from saved sessions):");
+
+  freqs.forEach(f => {
+    const n = per[f].n;
+    const avgImp = n ? (per[f].imp / n) : 0;
+    const avgDur = n ? (per[f].dur / n) : 0;
+    lines.push(`• ${trackNameByFreq(f)}: avg improvement = ${avgImp.toFixed(2)} (sessions=${n}, avg duration=${avgDur.toFixed(0)}s)`);
   });
 
   lines.push("");
   lines.push("Interpretation:");
-  lines.push(`Based on the saved sessions, ${bestTrack} produced the strongest average mood improvement for ${scopeLabel}.`);
+  if (bestF) {
+    lines.push(`Based on the saved sessions, "${trackNameByFreq(bestF)}" showed the strongest average mood improvement for ${scopeLabel}.`);
+  } else {
+    lines.push(`Based on the saved sessions, no clear best track was found for ${scopeLabel}.`);
+  }
   lines.push("Note: This is a simple statistical summary (not medical advice).");
+  lines.push("Note: Dominant/Range values above are from Spectrum Analyzer observations and do not mean the audio is a pure single-frequency tone.");
 
   analysisTextEl.textContent = lines.join("\n");
 }
@@ -441,6 +480,10 @@ saveSessionBtn.addEventListener("click", () => {
     return;
   }
 
+  // ✅ اجبار الأرقام تكون English قبل القراءة
+  moodBefore.value = toEnglishDigits(moodBefore.value);
+  moodAfter.value  = toEnglishDigits(moodAfter.value);
+
   const freqVal = Number(freqSelect.value);
   const before = clamp(Number(moodBefore.value), 0, 10);
   const after = clamp(Number(moodAfter.value), 0, 10);
@@ -458,7 +501,7 @@ saveSessionBtn.addEventListener("click", () => {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),
     date: nowISO(),
     user,
-    freq: freqVal,
+    freq: freqVal, // نخزن رقم داخلياً للمقارنة، بس نعرض اسم الأغنية للمستخدم
     duration,
     before,
     after,
@@ -495,22 +538,22 @@ function renderAll() {
   const sessions = filteredSessions();
   const scope = qUser ? qUser : "All users";
   generateFinalAnalysisText(sessions, scope);
-
-  applyTrackLabelsToSelect();
 }
 
-// default track
-applyTrackLabelsToSelect();
-audio.src = TRACKS[432].file;
+// ✅ تفعيل فرض أرقام إنكليزية للمود
+enforceEnglishInput(moodBefore);
+enforceEnglishInput(moodAfter);
+
+// ✅ set default audio (directly on <audio>)
+audio.src = "432.mp3";
 audio.load();
 renderAll();
-hideTrackNote();
+showTrackNote();
 
 
 // ======================================================
 //   Frequency-on-Y Visualizer (dominant freq over time)
 //   Y-axis = Hz, X-axis = time (last 10s)
-//   + shows note ONLY after we have analysis data
 // ======================================================
 (() => {
   const audioEl = document.getElementById("audio");
@@ -547,11 +590,6 @@ hideTrackNote();
   const maxPoints = sampleHz * windowSeconds;
   const history = [];
   let rafId = null;
-
-  // last analysis values
-  let lastDominant = null;
-  let lastMin = null;
-  let lastMax = null;
 
   function setup() {
     if (audioCtx) return;
@@ -592,24 +630,6 @@ hideTrackNote();
     return (bestI / bins) * nyquist;
   }
 
-  function maybeShowNote() {
-    // only show after we have enough points (analysis actually exists)
-    if (history.length < Math.max(8, sampleHz)) return;
-
-    const f = Number(freqSelect.value);
-    const title = trackLabel(f);
-
-    // add dominant/range to the note
-    const dom = (lastDominant ?? 0).toFixed(1);
-    const r1 = (lastMin ?? 0).toFixed(1);
-    const r2 = (lastMax ?? 0).toFixed(1);
-
-    const base = TRACKS[f]?.note || "";
-    const extra = `\n\nنتيجة التحليل الحالي: Dominant ≈ ${dom} Hz | Range (آخر 10 ثواني): ${r1}–${r2} Hz`;
-
-    setTrackNote(title, base + extra);
-  }
-
   function drawPlot() {
     if (!analyser) return;
 
@@ -620,10 +640,6 @@ hideTrackNote();
     let min = Infinity, max = -Infinity;
     for (const v of history) { if (v < min) min = v; if (v > max) max = v; }
     if (!isFinite(min)) { min = 0; max = 0; }
-
-    lastDominant = history[history.length - 1] || 0;
-    lastMin = min;
-    lastMax = max;
 
     const W = Math.max(1, Math.floor(canv.getBoundingClientRect().width));
     const H = Math.max(1, Math.floor(canv.getBoundingClientRect().height));
@@ -641,7 +657,6 @@ hideTrackNote();
       return padT + plotH - (ff / maxHz) * plotH;
     };
 
-    // grid
     ctx.strokeStyle = "rgba(148,163,184,0.35)";
     ctx.lineWidth = 1;
     ctx.font = "12px system-ui";
@@ -656,7 +671,6 @@ hideTrackNote();
       ctx.fillText(`${yTick} Hz`, 10, y + 4);
     }
 
-    // axes
     ctx.strokeStyle = "rgba(226,232,240,0.7)";
     ctx.beginPath();
     ctx.moveTo(padL, padT);
@@ -664,7 +678,6 @@ hideTrackNote();
     ctx.lineTo(padL + plotW, padT + plotH);
     ctx.stroke();
 
-    // band shading
     const y1 = yForHz(targetBand[0]);
     const y2 = yForHz(targetBand[1]);
     ctx.fillStyle = "rgba(34,197,94,0.12)";
@@ -673,7 +686,6 @@ hideTrackNote();
     ctx.fillStyle = "rgba(34,197,94,0.85)";
     ctx.fillText(`Target band: ${targetBand[0]}–${targetBand[1]} Hz`, padL + 10, y2 + 14);
 
-    // line
     if (history.length >= 2) {
       ctx.strokeStyle = "#60a5fa";
       ctx.lineWidth = 2;
@@ -687,18 +699,15 @@ hideTrackNote();
       ctx.stroke();
     }
 
-    // header
     ctx.fillStyle = "rgba(226,232,240,0.95)";
     ctx.font = "13px system-ui";
-    ctx.fillText(`Dominant: ${lastDominant.toFixed(1)} Hz`, padL, 18);
+    const last = history[history.length - 1] || 0;
+    ctx.fillText(`Dominant: ${last.toFixed(1)} Hz`, padL, 18);
     ctx.fillText(`Range (last 10s): ${min.toFixed(1)}–${max.toFixed(1)} Hz`, padL + 170, 18);
 
     ctx.fillStyle = "rgba(226,232,240,0.7)";
     ctx.font = "12px system-ui";
     ctx.fillText(`time (last ${windowSeconds}s)`, padL, H - 10);
-
-    // ✅ show note AFTER we have analysis data
-    maybeShowNote();
 
     rafId = requestAnimationFrame(drawPlot);
   }
@@ -720,17 +729,13 @@ hideTrackNote();
 
   audioEl.addEventListener("play", start);
   audioEl.addEventListener("playing", start);
-
   audioEl.addEventListener("pause", stop);
   audioEl.addEventListener("ended", stop);
 
   audioEl.addEventListener("loadedmetadata", () => {
     history.length = 0;
-    lastDominant = lastMin = lastMax = null;
-    hideTrackNote(); // hide until we re-analyze
     resizeCanvas();
   });
 
-  // unlock audio context on first user click
   document.addEventListener("click", start, { once: true });
 })();
