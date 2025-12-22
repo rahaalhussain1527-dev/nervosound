@@ -271,3 +271,20 @@ td button {
     height: 220px;
   }
 }
+.track-note{
+  margin-top: 10px;
+  padding: 10px 12px;
+  border: 1px solid rgba(239,68,68,0.35);
+  background: rgba(239,68,68,0.08);
+  border-radius: 10px;
+}
+.track-note-title{
+  color: #ef4444;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+.track-note-text{
+  color: #e5e7eb;
+  font-size: 13px;
+  line-height: 1.5;
+}
