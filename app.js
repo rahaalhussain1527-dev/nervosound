@@ -40,6 +40,23 @@ const openProfileBtn = $("openProfileBtn");
 const freqSelect = $("freqSelect");
 const audio = $("audio");
 const liveSecondsEl = $("liveSeconds");
+const trackNoteBox = document.getElementById("trackNote");
+const trackNoteText = document.getElementById("trackNoteText");
+
+const trackNotes = {
+  432: "Bu içerik tıbbi tedavi yerine geçmez. Relaxation parçası düşük ve orta frekanslarda yoğunlaşır, sakinleşme ve gevşeme hissini desteklemeyi amaçlar.",
+  852: "Bu içerik tıbbi tedavi yerine geçmez. Healing parçası orta frekans ağırlıklıdır ve zihinsel toparlanma hissini desteklemek için kullanılır.",
+  963: "Bu içerik tıbbi tedavi yerine geçmez. Spiritual Awareness parçası daha yüksek harmonik algı oluşturabilir, farkındalık ve odaklanma hissini destekler."
+};
+
+function showTrackNote() {
+  const f = Number(freqSelect.value);
+  const msg = trackNotes[f];
+  if (!msg || !trackNoteBox) return;
+
+  trackNoteText.textContent = msg;
+  trackNoteBox.style.display = "block";
+}
 
 const moodBefore = $("moodBefore");
 const moodAfter = $("moodAfter");
@@ -118,6 +135,7 @@ freqSelect.addEventListener("change", () => {
   audio.load();
 
   resetLiveTimer();
+  showTrackNote();
 });
 
 // ---------- Sessions / Analytics ----------
@@ -426,6 +444,7 @@ function renderAll() {
 audio.src = "432.mp3";
 audio.load();
 renderAll();
+showTrackNote();
 
 
 // ======================================================
