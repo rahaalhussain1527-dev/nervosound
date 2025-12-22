@@ -288,3 +288,22 @@ td button {
   font-size: 13px;
   line-height: 1.5;
 }
+.track-note{
+  margin-top: 12px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #1e293b;
+  background: #020617;
+}
+
+.track-note-title{
+  color: #ef4444;
+  font-weight: 800;
+  margin-bottom: 6px;
+}
+
+.track-note-text{
+  color: #e5e7eb;
+  font-size: 13px;
+  line-height: 1.6;
+}
