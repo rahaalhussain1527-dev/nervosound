@@ -3,23 +3,16 @@ const LS_USERS = "ns_users";
 const LS_SESSIONS = "ns_sessions";
 const $ = (id) => document.getElementById(id);
 
-function loadUsers() {
-  return JSON.parse(localStorage.getItem(LS_USERS) || "[]");
-}
-function saveUsers(users) {
-  localStorage.setItem(LS_USERS, JSON.stringify(users));
-}
-function loadSessions() {
-  return JSON.parse(localStorage.getItem(LS_SESSIONS) || "[]");
-}
-function saveSessions(sessions) {
-  localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions));
-}
+function loadUsers() { return JSON.parse(localStorage.getItem(LS_USERS) || "[]"); }
+function saveUsers(users) { localStorage.setItem(LS_USERS, JSON.stringify(users)); }
+
+function loadSessions() { return JSON.parse(localStorage.getItem(LS_SESSIONS) || "[]"); }
+function saveSessions(sessions) { localStorage.setItem(LS_SESSIONS, JSON.stringify(sessions)); }
 
 // ---------- Utils ----------
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
 function nowISO() { return new Date().toISOString(); }
-function fmtDate(iso) { return new Date(iso).toLocaleString(); }
+function fmtDate(iso) { return new Date(iso).toLocaleString("en-US"); } // ensure English formatting
 
 function getUserFromQuery() {
   const p = new URLSearchParams(location.search);
@@ -27,54 +20,14 @@ function getUserFromQuery() {
   return u ? u.trim() : null;
 }
 
-// ✅ تحويل الأرقام العربية إلى إنكليزية (١٢٣ / ۱۲۳ -> 123)
+// ✅ Convert Arabic/Persian digits to English digits
 function toEnglishDigits(str) {
   if (str == null) return "";
-  const map = {
-    "٠":"0","١":"1","٢":"2","٣":"3","٤":"4","٥":"5","٦":"6","٧":"7","٨":"8","٩":"9",
-    "۰":"0","۱":"1","۲":"2","۳":"3","۴":"4","۵":"5","۶":"6","۷":"7","۸":"8","۹":"9",
-  };
-  return String(str).replace(/[٠-٩۰-۹]/g, (d) => map[d] ?? d);
-}
-
-// ---------- Track metadata (Names + Spectrum Analyzer results) ----------
-const TRACKS = {
-  432: {
-    name: "Relaxation",
-    // ✳️ عدّلي الأرقام هون إذا بدك حسب تحليلك الحقيقي
-    dominant: 432.0,
-    range: [420.0, 560.0],
-    note:
-      "Bu içerik tıbbi tedavi yerine geçmez. Relaxation parçası düşük ve orta frekanslarda yoğunlaşır; sakinleşme ve gevşeme hissini desteklemeyi amaçlar."
-  },
-  852: {
-    name: "Healing",
-    dominant: 785.2,
-    range: [293.0, 890.6],
-    note:
-      "Bu içerik tıbbi tedavi yerine geçmez. Healing parçası orta frekans ağırlıklıdır; zihinsel toparlanma hissini desteklemek için kullanılır."
-  },
-  963: {
-    name: "Spiritual Awareness",
-    dominant: 890.6,
-    range: [750.0, 890.6],
-    note:
-      "Bu içerik tıbbi tedavi yerine geçmez. Spiritual Awareness parçası daha yüksek harmonik algı oluşturabilir; farkındalık ve odaklanma hissini destekler."
-  },
-};
-
-function trackNameByFreq(freq) {
-  const t = TRACKS[Number(freq)];
-  return t ? t.name : `${freq}`;
-}
-
-function trackSpectrumLine(freq) {
-  const t = TRACKS[Number(freq)];
-  if (!t) return "";
-  const dom = (t.dominant != null) ? `${Number(t.dominant).toFixed(1)} Hz` : "—";
-  const r1 = t.range?.[0] != null ? Number(t.range[0]).toFixed(1) : "—";
-  const r2 = t.range?.[1] != null ? Number(t.range[1]).toFixed(1) : "—";
-  return `Dominant: ${dom} | Range: ${r1}–${r2} Hz`;
+  return String(str)
+    // Arabic-Indic ٠١٢٣٤٥٦٧٨٩
+    .replace(/[٠-٩]/g, d => "0123456789"["٠١٢٣٤٥٦٧٨٩".indexOf(d)])
+    // Eastern Arabic / Persian ۰۱۲۳۴۵۶۷۸۹
+    .replace(/[۰-۹]/g, d => "0123456789"["۰۱۲۳۴۵۶۷۸۹".indexOf(d)]);
 }
 
 // ---------- State ----------
@@ -91,11 +44,8 @@ const freqSelect = $("freqSelect");
 const audio = $("audio");
 const liveSecondsEl = $("liveSeconds");
 
-const trackNoteBox = document.getElementById("trackNote");
-const trackNoteText = document.getElementById("trackNoteText");
-
 const moodBefore = $("moodBefore");
-const moodAfter = $("moodAfter");
+const moodAfter  = $("moodAfter");
 const saveSessionBtn = $("saveSessionBtn");
 const resetTimerBtn = $("resetTimerBtn");
 
@@ -112,27 +62,40 @@ const analysisTextEl = $("analysisText");
 const chartCanvas = $("chart");
 const chartCtx = chartCanvas.getContext("2d");
 
-// ✅ اجبار mood inputs تكون "English digits" حتى بالكتابة
-function enforceEnglishInput(el) {
-  if (!el) return;
+// Track note box (make sure you have these IDs in HTML)
+const trackNoteBox   = document.getElementById("trackNote");
+const trackNoteTitle = document.getElementById("trackNoteTitle"); // optional
+const trackNoteText  = document.getElementById("trackNoteText");  // required
 
-  // يساعد المتصفح يعرضها كلاتيني
-  el.setAttribute("lang", "en");
-  el.style.direction = "ltr";
-  el.style.unicodeBidi = "plaintext";
+// ✅ Tracks metadata (ENGLISH) + Dominant/Range from your screenshots
+const TRACKS = {
+  432: {
+    name: "Relaxation",
+    dominant: 432.0,
+    range: [420.0, 560.0],
+    note:
+      "Disclaimer: This is not a medical treatment. Relaxation is generally calm and is used to support relaxation and reduce tension.",
+  },
+  852: {
+    name: "Healing",
+    dominant: 785.2,
+    range: [293.0, 890.6],
+    note:
+      "Disclaimer: This is not a medical treatment. Healing is more mid-range and is often used to support emotional reset and mental clarity.",
+  },
+  963: {
+    name: "Spiritual Awareness",
+    dominant: 890.6,
+    range: [750.0, 890.6],
+    note:
+      "Disclaimer: This is not a medical treatment. Spiritual Awareness may feel more bright/harmonic and can support focus and awareness.",
+  },
+};
 
-  const fix = () => {
-    const v = el.value;
-    const fixed = toEnglishDigits(v);
-    if (v !== fixed) el.value = fixed;
-  };
-
-  el.addEventListener("input", fix);
-  el.addEventListener("change", fix);
-  fix();
+function trackNameFromFreq(freq) {
+  return (TRACKS[freq] && TRACKS[freq].name) ? TRACKS[freq].name : `${freq}`;
 }
 
-// ---------- Track note ----------
 function showTrackNote() {
   if (!trackNoteBox || !trackNoteText) return;
 
@@ -143,10 +106,40 @@ function showTrackNote() {
     return;
   }
 
-  // الملاحظة بتظهر بعد اختيار الموسيقى (وأيضاً بعد أول تحميل)
-  trackNoteText.textContent = t.note;
+  if (trackNoteTitle) trackNoteTitle.textContent = t.name;
+
+  const dom = (t.dominant ?? 0).toFixed(1);
+  const r1  = (t.range?.[0] ?? 0).toFixed(1);
+  const r2  = (t.range?.[1] ?? 0).toFixed(1);
+
+  trackNoteText.textContent =
+    `${t.note}  (Spectrum Analyzer: Dominant ≈ ${dom} Hz, Range ≈ ${r1}–${r2} Hz)`;
+
   trackNoteBox.style.display = "block";
 }
+
+// ✅ Force Mood inputs to always become ENGLISH digits
+function attachEnglishDigitInput(el) {
+  if (!el) return;
+
+  const fix = () => {
+    const raw = toEnglishDigits(el.value);
+    // keep only 0-9 and dot (optional)
+    const cleaned = raw.replace(/[^0-9.]/g, "");
+    el.value = cleaned;
+  };
+
+  el.addEventListener("input", fix);
+  el.addEventListener("blur", () => {
+    fix();
+    // clamp to 0..10 on blur
+    const n = Number(el.value);
+    if (!Number.isFinite(n)) { el.value = ""; return; }
+    el.value = String(clamp(n, 0, 10));
+  });
+}
+attachEnglishDigitInput(moodBefore);
+attachEnglishDigitInput(moodAfter);
 
 // ---------- Init users ----------
 function renderUsers() {
@@ -202,7 +195,7 @@ freqSelect.addEventListener("change", () => {
   audio.pause();
   audio.currentTime = 0;
 
-  // ✅ set src on <audio> directly
+  // ✅ IMPORTANT: set src on <audio> directly
   audio.src = `${f}.mp3`;
   audio.load();
 
@@ -233,7 +226,7 @@ function renderTable() {
     tr.innerHTML = `
       <td>${fmtDate(s.date)}</td>
       <td>${s.user}</td>
-      <td>${trackNameByFreq(s.freq)}</td>
+      <td>${trackNameFromFreq(s.freq)}</td>
       <td>${s.duration}</td>
       <td>${s.before}</td>
       <td>${s.after}</td>
@@ -259,45 +252,39 @@ function computeStats() {
   const total = sessions.length;
 
   let sumImp = 0;
-
-  const freqs = [432, 852, 963];
   const freqCount = {432:0, 852:0, 963:0};
   const freqImpSum = {432:0, 852:0, 963:0};
   const freqImpN = {432:0, 852:0, 963:0};
 
   sessions.forEach(s => {
     sumImp += s.improvement;
-    const f = Number(s.freq);
-    if (!freqCount[f] && freqCount[f] !== 0) return;
-
-    freqCount[f] = (freqCount[f] || 0) + 1;
-    freqImpSum[f] = (freqImpSum[f] || 0) + s.improvement;
-    freqImpN[f] = (freqImpN[f] || 0) + 1;
+    freqCount[s.freq] = (freqCount[s.freq] || 0) + 1;
+    freqImpSum[s.freq] = (freqImpSum[s.freq] || 0) + s.improvement;
+    freqImpN[s.freq] = (freqImpN[s.freq] || 0) + 1;
   });
 
   const avg = total ? (sumImp / total) : 0;
 
-  // Most used track (by count)
   let most = "—";
   let bestCount = 0;
-  freqs.forEach(f => {
+  for (const f of Object.keys(freqCount)) {
     if (freqCount[f] > bestCount) {
       bestCount = freqCount[f];
-      most = bestCount ? trackNameByFreq(f) : "—";
+      most = bestCount ? trackNameFromFreq(Number(f)) : "—";
     }
-  });
+  }
 
   statTotal.textContent = String(total);
   statAvg.textContent = avg.toFixed(2);
   statMost.textContent = most;
 
   const freqAvg = {};
-  freqs.forEach(f => {
+  [432,852,963].forEach(f => {
     const n = freqImpN[f] || 0;
     freqAvg[f] = n ? (freqImpSum[f] / n) : 0;
   });
 
-  return { freqAvg, avgOverall: avg, total };
+  return { freqAvg, avgOverall: avg, total, freqCount };
 }
 
 // ---------- Chart (Avg improvement) ----------
@@ -346,7 +333,7 @@ function drawChart(freqAvg) {
   chartCtx.stroke();
 
   const gap = w / freqs.length;
-  const barW = Math.min(160, gap * 0.6);
+  const barW = Math.min(140, gap * 0.6);
 
   freqs.forEach((f, i) => {
     const v = values[i];
@@ -364,9 +351,8 @@ function drawChart(freqAvg) {
     chartCtx.font = "13px system-ui";
     chartCtx.fillText(v.toFixed(2), x + 6, y - 8);
 
-    // ✅ اسم الأغنية بدل Hz
     chartCtx.font = "14px system-ui";
-    chartCtx.fillText(trackNameByFreq(f), x + 6, paddingT + h + 30);
+    chartCtx.fillText(trackNameFromFreq(f), x + 6, paddingT + h + 30);
   });
 }
 
@@ -383,72 +369,67 @@ function generateFinalAnalysisText(sessions, scopeLabel) {
   let sumImp = 0;
   let sumDur = 0;
 
-  const freqs = [432,852,963];
-  const per = {
+  const perTrack = {
     432: { n:0, imp:0, dur:0 },
     852: { n:0, imp:0, dur:0 },
     963: { n:0, imp:0, dur:0 },
   };
 
   sessions.forEach(s => {
-    const f = Number(s.freq);
     sumImp += s.improvement;
     sumDur += s.duration;
-
-    if (!per[f]) return;
-    per[f].n++;
-    per[f].imp += s.improvement;
-    per[f].dur += s.duration;
+    if (!perTrack[s.freq]) perTrack[s.freq] = { n:0, imp:0, dur:0 };
+    perTrack[s.freq].n++;
+    perTrack[s.freq].imp += s.improvement;
+    perTrack[s.freq].dur += s.duration;
   });
 
   const overallAvgImp = sumImp / total;
   const overallAvgDur = sumDur / total;
 
-  // Best track by avg improvement
-  let bestF = null;
+  // best track by avg improvement
+  let bestFreq = 432;
   let bestAvg = -Infinity;
-
-  freqs.forEach(f => {
-    const n = per[f].n;
-    const avg = n ? (per[f].imp / n) : null;
+  [432,852,963].forEach(f => {
+    const n = perTrack[f].n;
+    const avg = n ? (perTrack[f].imp / n) : null;
     if (avg !== null && avg > bestAvg) {
       bestAvg = avg;
-      bestF = f;
+      bestFreq = f;
     }
   });
 
+  const bestName = trackNameFromFreq(bestFreq);
+  const bestMeta = TRACKS[bestFreq];
+  const dom = (bestMeta?.dominant ?? 0).toFixed(1);
+  const r1  = (bestMeta?.range?.[0] ?? 0).toFixed(1);
+  const r2  = (bestMeta?.range?.[1] ?? 0).toFixed(1);
+
   const lines = [];
-  lines.push(`Final Analysis – ${scopeLabel}`);
-  lines.push(`Best track (highest avg improvement): ${bestF ? trackNameByFreq(bestF) : "—"}`);
-  lines.push(`Average improvement overall: ${overallAvgImp.toFixed(2)} (after - before)`);
-  lines.push(`Average listening duration overall: ${overallAvgDur.toFixed(0)} seconds`);
+  lines.push(`Final Psychological Analysis – ${scopeLabel}`);
+  lines.push(`Overall average improvement: ${overallAvgImp.toFixed(2)} (after - before)`);
+  lines.push(`Overall average listening duration: ${overallAvgDur.toFixed(0)} seconds`);
   lines.push("");
-
-  // ✅ إضافة شرح Spectrum Analyzer لكل أغنية
-  lines.push("Spectrum Analyzer (per track):");
-  freqs.forEach(f => {
-    lines.push(`• ${trackNameByFreq(f)} → ${trackSpectrumLine(f)}`);
-  });
-
+  lines.push(`Best track (highest avg improvement): ${bestName}`);
+  lines.push(`Spectrum Analyzer summary for "${bestName}": Dominant ≈ ${dom} Hz, Range ≈ ${r1}–${r2} Hz`);
   lines.push("");
-  lines.push("Per-track mood summary (from saved sessions):");
+  lines.push("Per-track summary:");
 
-  freqs.forEach(f => {
-    const n = per[f].n;
-    const avgImp = n ? (per[f].imp / n) : 0;
-    const avgDur = n ? (per[f].dur / n) : 0;
-    lines.push(`• ${trackNameByFreq(f)}: avg improvement = ${avgImp.toFixed(2)} (sessions=${n}, avg duration=${avgDur.toFixed(0)}s)`);
+  [432,852,963].forEach(f => {
+    const n = perTrack[f].n;
+    const avgImp = n ? (perTrack[f].imp / n) : 0;
+    const avgDur = n ? (perTrack[f].dur / n) : 0;
+    const meta = TRACKS[f];
+    const d = (meta?.dominant ?? 0).toFixed(1);
+    const a = (meta?.range?.[0] ?? 0).toFixed(1);
+    const b = (meta?.range?.[1] ?? 0).toFixed(1);
+    lines.push(`• ${trackNameFromFreq(f)}: avg improvement = ${avgImp.toFixed(2)} (sessions=${n}, avg duration=${avgDur.toFixed(0)}s), dominant ≈ ${d} Hz, range ≈ ${a}–${b} Hz`);
   });
 
   lines.push("");
   lines.push("Interpretation:");
-  if (bestF) {
-    lines.push(`Based on the saved sessions, "${trackNameByFreq(bestF)}" showed the strongest average mood improvement for ${scopeLabel}.`);
-  } else {
-    lines.push(`Based on the saved sessions, no clear best track was found for ${scopeLabel}.`);
-  }
+  lines.push(`Based on the saved sessions, "${bestName}" produced the strongest average mood improvement for ${scopeLabel}.`);
   lines.push("Note: This is a simple statistical summary (not medical advice).");
-  lines.push("Note: Dominant/Range values above are from Spectrum Analyzer observations and do not mean the audio is a pure single-frequency tone.");
 
   analysisTextEl.textContent = lines.join("\n");
 }
@@ -480,13 +461,14 @@ saveSessionBtn.addEventListener("click", () => {
     return;
   }
 
-  // ✅ اجبار الأرقام تكون English قبل القراءة
+  const freqVal = Number(freqSelect.value);
+
+  // ✅ ensure English digits before reading
   moodBefore.value = toEnglishDigits(moodBefore.value);
   moodAfter.value  = toEnglishDigits(moodAfter.value);
 
-  const freqVal = Number(freqSelect.value);
   const before = clamp(Number(moodBefore.value), 0, 10);
-  const after = clamp(Number(moodAfter.value), 0, 10);
+  const after  = clamp(Number(moodAfter.value), 0, 10);
 
   const duration = liveSeconds;
   if (duration <= 0) {
@@ -501,7 +483,7 @@ saveSessionBtn.addEventListener("click", () => {
     id: crypto.randomUUID ? crypto.randomUUID() : String(Date.now()) + Math.random(),
     date: nowISO(),
     user,
-    freq: freqVal, // نخزن رقم داخلياً للمقارنة، بس نعرض اسم الأغنية للمستخدم
+    freq: freqVal,
     duration,
     before,
     after,
@@ -538,17 +520,15 @@ function renderAll() {
   const sessions = filteredSessions();
   const scope = qUser ? qUser : "All users";
   generateFinalAnalysisText(sessions, scope);
+
+  // keep note visible & correct
+  showTrackNote();
 }
 
-// ✅ تفعيل فرض أرقام إنكليزية للمود
-enforceEnglishInput(moodBefore);
-enforceEnglishInput(moodAfter);
-
-// ✅ set default audio (directly on <audio>)
+// default
 audio.src = "432.mp3";
 audio.load();
 renderAll();
-showTrackNote();
 
 
 // ======================================================
@@ -595,7 +575,6 @@ showTrackNote();
     if (audioCtx) return;
 
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-
     analyser = audioCtx.createAnalyser();
     analyser.fftSize = fftSize;
     analyser.smoothingTimeConstant = smoothing;
@@ -607,9 +586,7 @@ showTrackNote();
 
   async function ensureRunning() {
     setup();
-    if (audioCtx && audioCtx.state === "suspended") {
-      await audioCtx.resume();
-    }
+    if (audioCtx && audioCtx.state === "suspended") await audioCtx.resume();
   }
 
   function getDominantHz() {
@@ -626,7 +603,6 @@ showTrackNote();
       const v = data[i];
       if (v > bestVal) { bestVal = v; bestI = i; }
     }
-
     return (bestI / bins) * nyquist;
   }
 
@@ -657,6 +633,7 @@ showTrackNote();
       return padT + plotH - (ff / maxHz) * plotH;
     };
 
+    // grid
     ctx.strokeStyle = "rgba(148,163,184,0.35)";
     ctx.lineWidth = 1;
     ctx.font = "12px system-ui";
@@ -671,6 +648,7 @@ showTrackNote();
       ctx.fillText(`${yTick} Hz`, 10, y + 4);
     }
 
+    // axes
     ctx.strokeStyle = "rgba(226,232,240,0.7)";
     ctx.beginPath();
     ctx.moveTo(padL, padT);
@@ -678,6 +656,7 @@ showTrackNote();
     ctx.lineTo(padL + plotW, padT + plotH);
     ctx.stroke();
 
+    // band shading
     const y1 = yForHz(targetBand[0]);
     const y2 = yForHz(targetBand[1]);
     ctx.fillStyle = "rgba(34,197,94,0.12)";
@@ -686,6 +665,7 @@ showTrackNote();
     ctx.fillStyle = "rgba(34,197,94,0.85)";
     ctx.fillText(`Target band: ${targetBand[0]}–${targetBand[1]} Hz`, padL + 10, y2 + 14);
 
+    // line
     if (history.length >= 2) {
       ctx.strokeStyle = "#60a5fa";
       ctx.lineWidth = 2;
@@ -699,6 +679,7 @@ showTrackNote();
       ctx.stroke();
     }
 
+    // header
     ctx.fillStyle = "rgba(226,232,240,0.95)";
     ctx.font = "13px system-ui";
     const last = history[history.length - 1] || 0;
