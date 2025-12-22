@@ -36,10 +36,14 @@
 
       <label class="label">Frequency</label>
       <select id="freqSelect">
-        <option value="432">432 Hz – Relaxation</option>
-        <option value="852">852 Hz – Healing</option>
-        <option value="963">963 Hz – Spiritual Awareness</option>
+        <option value="432">Relaxation</option>
+        <option value="852">Healing</option>
+        <option value="963">Spiritual Awareness</option>
       </select>
+      <div id="trackNote" class="track-note" style="display:none;">
+  <div class="track-note-title">Uyarı:</div>
+  <div id="trackNoteText" class="track-note-text"></div>
+</div>
 
       <div class="player">
        <audio id="audio" controls preload="metadata" src="432.mp3">
