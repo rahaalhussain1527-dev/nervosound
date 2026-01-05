@@ -6,7 +6,8 @@ import {
   deleteDoc,
   doc,
   query,
-  where
+  where,
+  serverTimestamp
 } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 import { db } from "./firebase.js";
@@ -14,8 +15,11 @@ import { db } from "./firebase.js";
 // ================= HELPERS =================
 const $ = (id) => document.getElementById(id);
 function clamp(n, min, max) { return Math.max(min, Math.min(max, n)); }
-function nowISO() { return new Date().toISOString(); }
-function fmtDate(iso) { return new Date(iso).toLocaleString("en-US"); }
+function fmtDate(ts) {
+  if (!ts) return "-";
+  if (ts.toDate) return ts.toDate().toLocaleString("en-US");
+  return new Date(ts).toLocaleString("en-US");
+}
 
 // ================= ELEMENTS =================
 const userSelect = $("userSelect");
@@ -51,19 +55,19 @@ const TRACKS = {
     name: "Relaxation",
     dominant: 432,
     range: [420, 560],
-    note: "This track is generally calm and supports relaxation."
+    note: "Supports relaxation and calmness."
   },
   852: {
     name: "Healing",
     dominant: 785,
     range: [293, 890],
-    note: "This track focuses on mid-range frequencies and emotional balance."
+    note: "Associated with emotional balance."
   },
   963: {
     name: "Spiritual Awareness",
     dominant: 890,
     range: [750, 960],
-    note: "This track emphasizes higher harmonics and mental focus."
+    note: "Associated with focus and awareness."
   }
 };
 
@@ -76,24 +80,27 @@ let timer = null;
 let liveSeconds = 0;
 
 // ================= FIRESTORE =================
+const usersRef = collection(db, "users");
+const sessionsRef = collection(db, "sessions");
+
 async function loadUsers() {
-  const snap = await getDocs(collection(db, "users"));
+  const snap = await getDocs(usersRef);
   return snap.docs.map(d => d.data().name);
 }
 
 async function saveUser(name) {
-  await addDoc(collection(db, "users"), { name });
+  await addDoc(usersRef, { name });
 }
 
 async function loadSessions(user = null) {
-  let q = collection(db, "sessions");
-  if (user) q = query(q, where("user", "==", user));
+  let q = sessionsRef;
+  if (user) q = query(sessionsRef, where("user", "==", user));
   const snap = await getDocs(q);
   return snap.docs.map(d => ({ id: d.id, ...d.data() }));
 }
 
 async function saveSession(session) {
-  await addDoc(collection(db, "sessions"), session);
+  await addDoc(sessionsRef, session);
 }
 
 async function deleteSession(id) {
@@ -152,6 +159,8 @@ audio.addEventListener("pause", () => {
   timer = null;
 });
 
+audio.addEventListener("ended", resetLiveTimer);
+
 freqSelect.addEventListener("change", () => {
   audio.pause();
   audio.currentTime = 0;
@@ -170,21 +179,23 @@ saveSessionBtn.addEventListener("click", async () => {
 
   const before = clamp(Number(moodBefore.value), 0, 10);
   const after = clamp(Number(moodAfter.value), 0, 10);
+
   if (liveSeconds <= 0) {
     alert("Play the audio first");
     return;
   }
 
-  await saveSession({
+  const session = {
     user,
     freq: Number(freqSelect.value),
     duration: liveSeconds,
     before,
     after,
     improvement: after - before,
-    date: nowISO()
-  });
+    createdAt: serverTimestamp()
+  };
 
+  await saveSession(session);
   resetLiveTimer();
   await renderAll();
 });
@@ -197,7 +208,7 @@ async function renderTable() {
   sessions.forEach(s => {
     const tr = document.createElement("tr");
     tr.innerHTML = `
-      <td>${fmtDate(s.date)}</td>
+      <td>${fmtDate(s.createdAt)}</td>
       <td>${s.user}</td>
       <td>${trackName(s.freq)}</td>
       <td>${s.duration}</td>
@@ -217,7 +228,7 @@ async function renderTable() {
   });
 }
 
-// ================= STATS + CHART =================
+// ================= STATS =================
 async function computeStats() {
   const sessions = await loadSessions(currentUser());
   statTotal.textContent = sessions.length;
@@ -225,7 +236,7 @@ async function computeStats() {
   if (!sessions.length) {
     statAvg.textContent = "0";
     statMost.textContent = "—";
-    return {};
+    return;
   }
 
   const avg =
@@ -236,8 +247,6 @@ async function computeStats() {
   sessions.forEach(s => counts[s.freq] = (counts[s.freq] || 0) + 1);
   const most = Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
   statMost.textContent = trackName(most);
-
-  return counts;
 }
 
 // ================= FINAL ANALYSIS =================
@@ -248,10 +257,9 @@ async function generateFinalAnalysis() {
     return;
   }
 
-  const bestFreq = sessions
-    .map(s => s.freq)
-    .sort((a,b)=>sessions.filter(x=>x.freq===b).length - sessions.filter(x=>x.freq===a).length)[0];
-
+  const counts = {};
+  sessions.forEach(s => counts[s.freq] = (counts[s.freq] || 0) + 1);
+  const bestFreq = Object.keys(counts).sort((a,b)=>counts[b]-counts[a])[0];
   const t = TRACKS[bestFreq];
 
   analysisTextEl.textContent =
@@ -259,11 +267,10 @@ async function generateFinalAnalysis() {
 
 Best performing track: ${t.name}
 
-Spectrum analysis indicates that this track is dominated by frequencies around ${t.dominant} Hz,
-generally ranging between ${t.range[0]} Hz and ${t.range[1]} Hz.
+Dominant frequency ≈ ${t.dominant} Hz
+Frequency range ≈ ${t.range[0]}–${t.range[1]} Hz
 
-This suggests that the perceived effect is not caused by a single frequency,
-but by a frequency band where multiple components coexist.
+The observed effect appears to emerge from a frequency band rather than a single tone.
 
 Note: This analysis is based on user-reported mood changes and is not medical advice.`;
 }
