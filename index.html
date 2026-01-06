@@ -2,150 +2,65 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1"/>
-  <title>NervoSound</title>
+  <title>NervoSound – Music Therapy</title>
   <link rel="stylesheet" href="style.css" />
 </head>
 <body>
-  <header class="top">
-    <h1>NervoSound – Music Therapy</h1>
-    <p class="sub">Track listening time + mood (0–10), compare frequencies, and view per-user analytics.</p>
-  </header>
 
-  <main class="grid">
-    <!-- USERS -->
-    <section class="card">
-      <h2>Users</h2>
+<h1>NervoSound – Music Therapy</h1>
 
-      <div class="row">
-        <input id="newUserName" type="text" placeholder="Type a name (e.g., Raha)" />
-        <button id="addUserBtn">Add / Select</button>
-      </div>
+<!-- USERS -->
+<section>
+  <h2>Users</h2>
+  <input id="newUserName" placeholder="Type a name (e.g., Raha)" />
+  <button id="addUserBtn">Add / Select</button>
 
-      <div class="row">
-        <select id="userSelect"></select>
-        <button id="openProfileBtn">Open profile</button>
-      </div>
+  <select id="userSelect"></select>
+</section>
 
-      <p class="hint">Profile opens as: <code>?user=NAME</code></p>
-    </section>
+<hr>
 
-    <!-- PLAYER + SESSION -->
-    <section class="card">
-      <h2>Session</h2>
+<!-- SESSION -->
+<section>
+  <h2>Session</h2>
 
-      <label class="label">Frequency</label>
-      <select id="freqSelect">
-  <option value="432">Relaxation</option>
-  <option value="852">Healing</option>
-  <option value="963">Spiritual Awareness</option>
-</select>
+  <select id="freqSelect">
+    <option value="432">Relaxation (432Hz)</option>
+    <option value="852">Healing (852Hz)</option>
+    <option value="963">Spiritual Awareness (963Hz)</option>
+  </select>
 
-<div id="trackNote" class="track-note" style="display:none;">
-  <div class="track-note-title" id="trackNoteTitle"></div>
-  <div class="track-note-text" id="trackNoteText"></div>
-</div>
-      <div class="player">
-       <audio id="audio" controls preload="metadata" src="432.mp3">
-  Your browser does not support audio.
-</audio>
+  <br><br>
 
-        <!-- Frequency Visualizer -->
-        <div class="vizWrap">
-          <canvas id="spectrumCanvas"></canvas>
-        </div>
+  <audio id="audio" controls></audio>
 
-        <div class="time">
-          Listening time (this session): <b><span id="liveSeconds">0</span></b> seconds
-        </div>
-      </div>
+  <p>Listening time: <span id="liveSeconds">0</span> seconds</p>
 
-      <div class="row">
-        <div class="col">
-          <label class="label">Mood before (0–10)</label>
-          <input id="moodBefore" type="number" min="0" max="10" value="5" />
-        </div>
-        <div class="col">
-          <label class="label">Mood after (0–10)</label>
-          <input id="moodAfter" type="number" min="0" max="10" value="5" />
-        </div>
-      </div>
+  <label>Mood before (0–10)</label>
+  <input id="moodBefore" type="number" min="0" max="10">
 
-      <div class="row">
-        <button id="saveSessionBtn" class="primary">Save session</button>
-        <button id="resetTimerBtn">Reset timer</button>
-      </div>
+  <label>Mood after (0–10)</label>
+  <input id="moodAfter" type="number" min="0" max="10">
 
-      <p class="hint">
-        Tip: Play audio, listen, then set mood-after and click <b>Save session</b>.
-      </p>
-    </section>
+  <br><br>
+  <button id="saveSessionBtn">Save session</button>
+</section>
 
-    <!-- ANALYTICS -->
-    <section class="card wide">
-      <h2 id="analyticsTitle">Analytics</h2>
+<hr>
 
-      <div class="row wrap">
-        <div class="mini">
-          <div class="k">Total sessions</div>
-          <div class="v" id="statTotal">0</div>
-        </div>
-        <div class="mini">
-          <div class="k">Avg improvement</div>
-          <div class="v" id="statAvg">0</div>
-        </div>
-        <div class="mini">
-          <div class="k">Most used</div>
-          <div class="v" id="statMost">—</div>
-        </div>
-      </div>
+<!-- ANALYTICS -->
+<section>
+  <h2>Analytics</h2>
+  <p>Total sessions: <span id="statTotal">0</span></p>
+  <p>Average improvement: <span id="statAvg">0</span></p>
+  <p>Most used frequency: <span id="statMost">—</span></p>
+</section>
 
-      <h3>Frequency comparison (Avg improvement)</h3>
-      <canvas id="chart" width="900" height="360"></canvas>
+<hr>
 
-      <!-- FINAL ANALYSIS -->
-      <div class="final-analysis">
-        <h3>Final Psychological Analysis</h3>
-        <pre id="analysisText">No analysis yet. Add sessions to see results.</pre>
-        <p class="hint" style="margin-top:10px">
-          Note: This analysis is calculated from sessions stored in your browser (LocalStorage).
-        </p>
-      </div>
+<!-- TEST -->
+<button id="testFirestoreBtn">TEST FIRESTORE</button>
 
-      <h3>Sessions</h3>
-      <div class="tableWrap">
-        <table id="sessionsTable">
-          <thead>
-            <tr>
-              <th>Date</th>
-              <th>User</th>
-              <th>Freq</th>
-              <th>Duration (s)</th>
-              <th>Before</th>
-              <th>After</th>
-              <th>Improvement</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody></tbody>
-        </table>
-      </div>
-
-      <div class="row">
-        <button id="clearAllBtn" class="danger">Clear ALL data</button>
-      </div>
-
-      <p class="hint">
-        Data is saved in <b>LocalStorage</b> (in your browser). GitHub Pages can run it normally.
-      </p>
-    </section>
-  </main>
-<!-- Firebase SDK -->
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app-compat.js"></script>
-<script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore-compat.js"></script>
-<script src="firebase.js"></script>
-  <script src="app.js"></script>
-  <button onclick="testWrite()">TEST FIRESTORE</button>
-<script type="module" src="test-firestore.js"></script>
+<script type="module" src="app.js"></script>
 </body>
 </html>
